@@ -86,6 +86,7 @@ class CommandExecutor(object):
         self.handlers = {
             "label": self._handle_label,
             "text": self._handle_text,
+            "bg": self._handle_bg,
             "wait": self._handle_wait,
             "set_var": self._handle_set_var,
             "jump": self._handle_jump,
@@ -108,7 +109,7 @@ class CommandExecutor(object):
             return handler(command)
         
         # todo: 支持更多命令类型
-        if cmd_type in ("fade_in", "fade_out", "bg", "character", "show_image", "action"):
+        if cmd_type in ("fade_in", "fade_out", "character", "show_image", "action"):
             return False
             
         logger.warn("未识别的剧情命令: {}".format(cmd_type))
@@ -121,11 +122,21 @@ class CommandExecutor(object):
         speaker = cmd.get("speaker", "")
         content = cmd.get("content", "")
         speed = cmd.get("typewriter_speed")
-        
-        text = "{}：{}".format(speaker, content) if speaker else content
+        if speaker == "":
+            self.ui.speaker_panel.SetVisible(False)
+        else:
+            self.ui.speaker_panel.SetVisible(True)
+            self.ui.speaker_label.SetText(speaker)
+        text = "{}".format(content) 
         self.ui.typewriter.start(text, speed)
         self.ui.pause_mode = "tap"
         return True
+
+    def _handle_bg(self, cmd):
+        image_name = cmd.get("image")
+        if image_name and self.ui.bg_image:
+            self.ui.bg_image.SetSprite(image_name)
+        return False
         
     def _handle_wait(self, cmd):
         duration = self._parse_float(cmd.get("duration", 0))
@@ -278,10 +289,14 @@ class GameUI(ScreenNode):
         """UI创建成功时调用"""
         # 初始化UI控件
         self.dialog_label = self.GetBaseUIControl("/root_panel/dialog_panel/dialog_label").asLabel()
+        self.speaker_panel = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel")
+        self.speaker_label = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel/speaker_label").asLabel()
         self.touch_button = self.GetBaseUIControl("/root_panel/touch_button").asButton()
         self.touch_button.AddTouchEventParams({"isSwallow": True})
         self.touch_button.SetButtonTouchUpCallback(self.OnTouchButton)
+        self.bg_image = self.GetBaseUIControl("/root_panel/background_image").asImage()
         
+
         # 初始化组件
         typewriter_speed = self.param.get("typewriter_speed", 0.03)
         self.typewriter = TypewriterEffect(self.dialog_label, typewriter_speed)

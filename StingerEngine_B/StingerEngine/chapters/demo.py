@@ -9,13 +9,13 @@ script_data = [
     {"type": "music", "action": "stop"},
     
     {"type": "fade_in", "duration": 2.0},
-    {"type": "bg", "image": "bg_cafe_rain"},
+    {"type": "bg", "image": "textures/modTextures/demo/bg_cafe_rain"},
     {"type": "music", "file": "bgm_relax", "action": "play"},
     {"type": "sfx", "file": "sfx_rain", "loop": True},
 
     # 旁白
-    {"type": "text", "speaker": "旁白", "content": "窗外的雨淅淅沥沥地下着，已经是下午三点了。"},
-    {"type": "text", "speaker": "旁白", "content": "这家名为'时光角落'的咖啡店，今天格外安静。"},
+    {"type": "text", "speaker": "", "content": "窗外的雨淅淅沥沥地下着，已经是下午三点了。"},
+    {"type": "text", "speaker": "", "content": "这家名为'时光角落'的咖啡店，今天格外安静。"},
 
     # 主角独白
     {"type": "text", "speaker": "我", "content": "（呼……终于可以把这周的工作告一段落了。）"},
@@ -122,8 +122,8 @@ script_data = [
     {"type": "text", "speaker": "苏瑶", "content": "这样啊……好吧，那真的谢谢你了。"},
     {"type": "bg", "image": "bg_street"},
     {"type": "character", "action": "clear"},
-    {"type": "text", "speaker": "旁白", "content": "她向我挥挥手，转身走进了雨幕中。"},
-    {"type": "text", "speaker": "旁白", "content": "虽然有些遗憾，但这也是不错的午后插曲。"},
+    {"type": "text", "speaker": "", "content": "她向我挥挥手，转身走进了雨幕中。"},
+    {"type": "text", "speaker": "", "content": "虽然有些遗憾，但这也是不错的午后插曲。"},
     {"type": "show_image", "image": "img_cg_normal"},
     {"type": "text", "speaker": "系统", "content": "【结局：擦肩而过】"},
 
