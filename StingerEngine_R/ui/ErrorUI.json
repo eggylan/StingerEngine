@@ -1,0 +1,166 @@
+{
+    "ErrorUI": {
+        "type": "screen",
+        "controls": [
+            {
+                "root_panel": {
+                    "type": "panel",
+                    "size": [
+                        "100%+0px",
+                        "100%+0px"
+                    ],
+                    "layer": 800,
+                    "controls": [
+                        {
+                            "bg": {
+                                "type": "image",
+                                "size": [
+                                    "100%+0px",
+                                    "100%+0px"
+                                ],
+                                "texture": "textures/modTextures/default/grey"
+                            }
+                        },
+                        {
+                            "Title": {
+                                "type": "label",
+                                "anchor_from": "top_left",
+                                "anchor_to": "top_left",
+                                "offset": [
+                                    15.0,
+                                    "7%+0px"
+                                ],
+                                "layer": 2,
+                                "font_size": "large",
+                                "font_type": "default",
+                                "text": "脚本执行时发生了意外错误。",
+                                "text_alignment": "center"
+                            }
+                        },
+                        {
+                            "divider": {
+                                "type": "image",
+                                "anchor_from": "top_middle",
+                                "anchor_to": "top_middle",
+                                "offset": [
+                                    0.0,
+                                    "18%+0px"
+                                ],
+                                "size": [
+                                    "95%+0px",
+                                    4.0
+                                ],
+                                "layer": 1,
+                                "texture": "textures/modTextures/default/divider"
+                            }
+                        },
+                        {
+                            "warning_alex": {
+                                "type": "image",
+                                "anchor_from": "bottom_left",
+                                "anchor_to": "bottom_left",
+                                "size": [
+                                    "34%+0px",
+                                    "67%+0px"
+                                ],
+                                "layer": 2,
+                                "texture": "textures/modTextures/default/warning_alex"
+                            }
+                        },
+                        {
+                            "err_info_label": {
+                                "type": "label",
+                                "anchor_from": "right_middle",
+                                "anchor_to": "right_middle",
+                                "offset": [
+                                    -8.0,
+                                    3.5
+                                ],
+                                "size": [
+                                    "64%+0px",
+                                    "51%+0px"
+                                ],
+                                "layer": 1,
+                                "font_type": "default",
+                                "text": "错误信息：\nTraceback:....\n...\n...\n\n请截图此界面并联系开发者"
+                            }
+                        },
+                        {
+                            "exit_button@common.button": {
+                                "type": "button",
+                                "$control_alpha": 1.0,
+                                "$default_texture": "textures/netease/common/button/default",
+                                "$hover_texture": "textures/netease/common/button/hover",
+                                "$is_new_nine_slice": false,
+                                "$label_color": [
+                                    1,
+                                    1,
+                                    1
+                                ],
+                                "$label_font_scale_factor": 1.0,
+                                "$label_font_size": "normal",
+                                "$label_layer": 3,
+                                "$label_offset": [
+                                    0,
+                                    0
+                                ],
+                                "$label_text": "退出游戏",
+                                "$nine_slice_buttom": 0,
+                                "$nine_slice_left": 0,
+                                "$nine_slice_right": 0,
+                                "$nine_slice_top": 0,
+                                "$nineslice_size": [
+                                    0,
+                                    0,
+                                    0,
+                                    0
+                                ],
+                                "$pressed_button_name": "%netease_editor_template_namespace.click",
+                                "$pressed_texture": "textures/netease/common/button/pressed",
+                                "$texture_layer": 2,
+                                "anchor_from": "bottom_right",
+                                "anchor_to": "bottom_right",
+                                "offset": [
+                                    -20.0,
+                                    "-4%+0px"
+                                ],
+                                "size": [
+                                    52,
+                                    25
+                                ],
+                                "layer": 5,
+                                "button_mappings": [],
+                                "default_control": "default",
+                                "hover_control": "hover",
+                                "is_handle_button_move_event": true,
+                                "pressed_control": "pressed",
+                                "bindings": [
+                                    {
+                                        "binding_type": "collection_details",
+                                        "binding_collection_name": "",
+                                        "binding_condition": "always_when_visible"
+                                    }
+                                ],
+                                "controls": [
+                                    {
+                                        "default@netease_editor_template_namespace.default": {}
+                                    },
+                                    {
+                                        "hover@netease_editor_template_namespace.hover": {}
+                                    },
+                                    {
+                                        "pressed@netease_editor_template_namespace.pressed": {}
+                                    },
+                                    {
+                                        "button_label@netease_editor_template_namespace.button_label": {}
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "namespace": "ErrorUI"
+}

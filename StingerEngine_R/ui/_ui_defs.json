@@ -1,0 +1,7 @@
+{
+    "ui_defs": [
+        "ui/ErrorUI.json",
+        "ui/GameUI.json",
+        "ui/MainInterfaceUI.json"
+    ]
+}
