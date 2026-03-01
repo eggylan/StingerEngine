@@ -87,6 +87,8 @@ class CommandExecutor(object):
             "label": self._handle_label,
             "text": self._handle_text,
             "bg": self._handle_bg,
+            "fade_in":self._handle_fade_in,
+            "fade_out":self._handle_fade_out,
             "wait": self._handle_wait,
             "set_var": self._handle_set_var,
             "jump": self._handle_jump,
@@ -109,7 +111,7 @@ class CommandExecutor(object):
             return handler(command)
         
         # todo: 支持更多命令类型
-        if cmd_type in ("fade_in", "fade_out", "character", "show_image", "action"):
+        if cmd_type in ("character", "show_image", "action"):
             return False
             
         logger.warn("未识别的剧情命令: {}".format(cmd_type))
@@ -127,6 +129,8 @@ class CommandExecutor(object):
         else:
             self.ui.speaker_panel.SetVisible(True)
             self.ui.speaker_label.SetText(speaker)
+        if not content == "":
+            self.ui.dialog_panel.SetVisible(True)
         text = "{}".format(content) 
         self.ui.typewriter.start(text, speed)
         self.ui.pause_mode = "tap"
@@ -147,6 +151,66 @@ class CommandExecutor(object):
         compGame.AddTimer(duration, self.ui._on_wait_finished)
         return True
         
+    def _handle_fade_in(self, cmd):
+        self.ui.pause_mode = "wait"
+        def _fade_callback():
+            self.ui.pause_mode = None
+            self.ui.ExecuteUntilPause()
+        duration = self._parse_float(cmd.get("duration", 1.0))
+        self._do_fade("in", duration, callback=_fade_callback)
+        return False
+    
+    def _handle_fade_out(self, cmd):
+        self.ui.pause_mode = "wait"
+        def _fade_callback():
+            self.ui.pause_mode = None
+            self.ui.ExecuteUntilPause()
+        duration = self._parse_float(cmd.get("duration", 1.0))
+        self._do_fade("out", duration, callback=_fade_callback)
+        return False
+    
+    def _do_fade(self,direction, duration, callback=None):
+        if not self.ui.fade_overlay:
+            return
+        self.ui.fade_overlay.SetVisible(True)
+        if direction == "in":
+            def callback_wrapper():
+                self.ui.fade_overlay.SetVisible(False)
+                if callback:
+                    callback()
+            anim_data = {
+                "namespace": "GameUI",
+                "fade": {
+                    "anim_type": "alpha",
+                    "duration": duration,
+                    "from": 1,
+                    "next": "",
+                    "to": 0
+                },
+            }
+            clientApi.RegisterUIAnimations(anim_data,override=True)
+            self.ui.fade_overlay.RemoveAnimation("alpha") # 先移除旧动画，如果不存在这里不会报错
+            self.ui.fade_overlay.SetAnimation("alpha","GameUI","fade",True)
+            self.ui.fade_overlay.SetAnimEndCallback("fade", callback_wrapper)
+        elif direction == "out":
+            def callback_wrapper():
+                if callback:
+                    callback()
+            anim_data = {
+                "namespace": "GameUI",
+                "fade": {
+                    "anim_type": "alpha",
+                    "duration": duration,
+                    "from": 0,
+                    "next": "",
+                    "to": 1
+                },
+            }
+            clientApi.RegisterUIAnimations(anim_data,override=True)
+            self.ui.fade_overlay.RemoveAnimation("alpha")
+            self.ui.fade_overlay.SetAnimation("alpha","GameUI","fade",True)
+            self.ui.fade_overlay.SetAnimEndCallback("fade", callback_wrapper)
+    
     def _handle_set_var(self, cmd):
         var_name = cmd.get("variable")
         if var_name:
@@ -288,6 +352,7 @@ class GameUI(ScreenNode):
     def Create(self):
         """UI创建成功时调用"""
         # 初始化UI控件
+        self.dialog_panel = self.GetBaseUIControl("/root_panel/dialog_panel")
         self.dialog_label = self.GetBaseUIControl("/root_panel/dialog_panel/dialog_label").asLabel()
         self.speaker_panel = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel")
         self.speaker_label = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel/speaker_label").asLabel()
@@ -295,7 +360,7 @@ class GameUI(ScreenNode):
         self.touch_button.AddTouchEventParams({"isSwallow": True})
         self.touch_button.SetButtonTouchUpCallback(self.OnTouchButton)
         self.bg_image = self.GetBaseUIControl("/root_panel/background_image").asImage()
-        
+        self.fade_overlay = self.GetBaseUIControl("/root_panel/fade_overlay").asImage()
 
         # 初始化组件
         typewriter_speed = self.param.get("typewriter_speed", 0.03)

@@ -119,19 +119,19 @@ class Player:
         :param loop: 是否循环播放
         :type loop: bool
         """
-        EGGameServerSystem = serverApi.GetSystem(MOD_NAME, SERVER_NAME)
+        EngineServer = serverApi.GetSystem(MOD_NAME, SERVER_NAME)
         params = {
             "bgm": bgm,
             "volume": volume,
             "loop": loop
         }
-        EGGameServerSystem.NotifyToClient(self.entityId, "PlayBGM", params)
+        EngineServer.NotifyToClient(self.entityId, "PlayBGM", params)
     def stop_bgm(self,name,fadeoutTime=0.0):
         """
         停止背景音乐
         """
-        EGGameServerSystem = serverApi.GetSystem(MOD_NAME, SERVER_NAME)
-        EGGameServerSystem.NotifyToClient(self.entityId, "StopBGM", {
+        EngineServer = serverApi.GetSystem(MOD_NAME, SERVER_NAME)
+        EngineServer.NotifyToClient(self.entityId, "StopBGM", {
             "name": name,
             "fadeoutTime": fadeoutTime
         })

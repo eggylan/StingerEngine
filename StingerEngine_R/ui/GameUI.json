@@ -55,6 +55,7 @@
                                 "layer": 4,
                                 "alpha": 0.8,
                                 "propagate_alpha": true,
+                                "visible": false,
                                 "controls": [
                                     {
                                         "speaker_panel": {
@@ -200,6 +201,19 @@
                                         "button_label@netease_editor_template_namespace.button_label": {}
                                     }
                                 ]
+                            }
+                        },
+                        {
+                            "fade_overlay": {
+                                "type": "image",
+                                "size": [
+                                    "100%+0px",
+                                    "100%+0px"
+                                ],
+                                "layer": 50,
+                                "propagate_alpha": true,
+                                "visible": false,
+                                "texture": "textures/modTextures/default/black"
                             }
                         }
                     ]

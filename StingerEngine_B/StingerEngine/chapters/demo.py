@@ -4,12 +4,8 @@
 
 script_data = [
     # === 开场 ===
-    {"type": "fade_out", "duration": 1.0},
-    {"type": "bg", "image": "black"},
-    {"type": "music", "action": "stop"},
-    
-    {"type": "fade_in", "duration": 2.0},
     {"type": "bg", "image": "textures/modTextures/demo/bg_cafe_rain"},
+    {"type": "fade_in", "duration": 2.0},
     {"type": "music", "file": "bgm_relax", "action": "play"},
     {"type": "sfx", "file": "sfx_rain", "loop": True},
 
