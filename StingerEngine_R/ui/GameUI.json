@@ -24,7 +24,7 @@
                                     "100%+0px",
                                     "100%+0px"
                                 ],
-                                "layer": 1,
+                                "layer": 10,
                                 "fill": true,
                                 "texture": "textures/modTextures/default/black"
                             }
@@ -36,18 +36,39 @@
                                     "100%+0px",
                                     "100%+0px"
                                 ],
-                                "layer": 2
+                                "layer": 20
                             }
                         },
                         {
-                            "menu_stack_panel": {
-                                "type": "stack_panel",
+                            "cg_panel": {
+                                "type": "panel",
                                 "size": [
-                                    "80%+0px",
-                                    100
+                                    "100%+0px",
+                                    "100%+0px"
                                 ],
-                                "layer": 1,
-                                "visible": false
+                                "layer": 30,
+                                "visible": false,
+                                "controls": [
+                                    {
+                                        "cg_image_0": {
+                                            "type": "image",
+                                            "size": [
+                                                "100%+0px",
+                                                "100%+0px"
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "cg_image_1": {
+                                            "type": "image",
+                                            "size": [
+                                                "100%+0px",
+                                                "100%+0px"
+                                            ],
+                                            "layer": 1
+                                        }
+                                    }
+                                ]
                             }
                         },
                         {
@@ -63,7 +84,7 @@
                                     "90%+0px",
                                     "24%+0px"
                                 ],
-                                "layer": 4,
+                                "layer": 40,
                                 "alpha": 0.8,
                                 "propagate_alpha": true,
                                 "visible": false,
@@ -148,6 +169,17 @@
                             }
                         },
                         {
+                            "menu_stack_panel": {
+                                "type": "stack_panel",
+                                "size": [
+                                    "80%+0px",
+                                    100
+                                ],
+                                "layer": 50,
+                                "visible": false
+                            }
+                        },
+                        {
                             "touch_button@common.button": {
                                 "type": "button",
                                 "$control_alpha": 1.0,
@@ -184,7 +216,7 @@
                                     "100%+0px",
                                     "100%+0px"
                                 ],
-                                "layer": 30,
+                                "layer": 60,
                                 "button_mappings": [],
                                 "default_control": "default",
                                 "hover_control": "hover",
@@ -221,7 +253,7 @@
                                     "100%+0px",
                                     "100%+0px"
                                 ],
-                                "layer": 50,
+                                "layer": 70,
                                 "propagate_alpha": true,
                                 "visible": false,
                                 "texture": "textures/modTextures/default/black"

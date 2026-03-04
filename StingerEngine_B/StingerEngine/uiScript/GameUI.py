@@ -25,10 +25,11 @@ class GameUI(ScreenNode):
         self.variables = {}
         self.label_index = {}
         self.pending_menu = None
-        
         self.current_music = None
+        self.current_cg = {"0": None, "1": None}
+        self.cg_front = "0"  # 当前前景CG槽位，"0" 或 "1"
         self.inline_queue = []  # 内联命令队列（condition 等暂停恢复用）
-        
+
         # 组件
         self.typewriter = None
         self.executor = None
@@ -60,6 +61,9 @@ class GameUI(ScreenNode):
         self.touch_button.AddTouchEventParams({"isSwallow": True})
         self.touch_button.SetButtonTouchUpCallback(self.OnTouchButton)
         self.bg_image = self.GetBaseUIControl("/root_panel/background_image").asImage()
+        self.cg_panel = self.GetBaseUIControl("/root_panel/cg_panel")
+        self.cg_image_0_base = self.GetBaseUIControl("/root_panel/cg_panel/cg_image_0")
+        self.cg_image_1_base = self.GetBaseUIControl("/root_panel/cg_panel/cg_image_1")
         self.fade_overlay = self.GetBaseUIControl("/root_panel/fade_overlay").asImage()
 
         # 初始化组件

@@ -252,7 +252,9 @@ class CommandExecutor(object):
             "fade_in":self._handle_fade_in,
             "fade_out":self._handle_fade_out,
             "wait": self._handle_wait,
-            "set_var": self._handle_set_var,
+            "show_image": self._handle_show_image,
+            "hide_image": self._handle_hide_image,
+            "var": self._handle_var,
             "jump": self._handle_jump,
             "condition": self._handle_condition,
             "menu": self._handle_menu,
@@ -273,7 +275,7 @@ class CommandExecutor(object):
             return handler(command)
         
         # todo: 支持更多命令类型
-        if cmd_type in ("character", "show_image", "action"):
+        if cmd_type in ("character", "action"):
             return False
             
         logger.warn("未识别的剧情命令: {}".format(cmd_type))
@@ -312,6 +314,83 @@ class CommandExecutor(object):
         self.ui.pause_mode = "wait"
         compGame.AddTimer(duration, self.ui._on_wait_finished)
         return True
+    
+    def _handle_show_image(self, cmd):
+        image_name = cmd.get("image")
+        fade = self._parse_float(cmd.get("fade", 0))
+        # 为了实现两CG平滑切换，这里使用cg_image_0和cg_image_1交替显示
+        if not image_name or not self.ui.cg_panel:
+            return False
+
+        front = self.ui.cg_front # 当前前景槽位
+        back = "1" if front == "0" else "0"  # 即将使用的后景槽位
+        front_ctrl = self.ui.cg_image_0_base if front == "0" else self.ui.cg_image_1_base  
+        back_ctrl  = self.ui.cg_image_1_base if front == "0" else self.ui.cg_image_0_base
+
+        # 将新图片设置到后景控件
+        back_ctrl.asImage().SetSprite(image_name)
+        self.ui.current_cg[back] = image_name
+        self.ui.cg_panel.SetVisible(True)
+
+        has_old = self.ui.current_cg[front] is not None
+
+        if fade > 0 and has_old:
+            # 有旧图：先让后景可见，然后淡出前景以实现交叉渐变
+            back_ctrl.SetVisible(True)
+            self.ui.pause_mode = "wait"
+            def _on_crossfade_done():
+                front_ctrl.SetVisible(False)
+                self.ui.current_cg[front] = None
+                self.ui.cg_front = back
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+            self._do_fade(front_ctrl, "in", fade, callback=_on_crossfade_done)
+            return True
+        elif fade > 0:
+            # 首张图片：渐入显示
+            back_ctrl.SetVisible(True)
+            self.ui.pause_mode = "wait"
+            def _on_fadein_done():
+                self.ui.cg_front = back
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+            self._do_fade(back_ctrl, "out", fade, callback=_on_fadein_done)
+            return True
+        else:
+            # 无渐变，直接切换
+            back_ctrl.SetVisible(True)
+            if has_old:
+                front_ctrl.SetVisible(False)
+                self.ui.current_cg[front] = None
+            self.ui.cg_front = back
+            return False
+
+    def _handle_hide_image(self, cmd):
+        if not self.ui.cg_panel:
+            return False
+        fade = self._parse_float(cmd.get("fade", 0))
+        front = self.ui.cg_front
+        front_ctrl = self.ui.cg_image_0_base if front == "0" else self.ui.cg_image_1_base
+
+        if fade > 0 and self.ui.current_cg[front] is not None:
+            # 渐隐当前CG
+            self.ui.pause_mode = "wait"
+            def _on_hide_done():
+                self.ui.cg_panel.SetVisible(False)
+                self.ui.cg_image_0_base.SetVisible(False)
+                self.ui.cg_image_1_base.SetVisible(False)
+                self.ui.current_cg = {"0": None, "1": None}
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+            self._do_fade(front_ctrl, "in", fade, callback=_on_hide_done)
+            return True
+
+        # 无渐变，直接隐藏
+        self.ui.cg_panel.SetVisible(False)
+        self.ui.cg_image_0_base.SetVisible(False)
+        self.ui.cg_image_1_base.SetVisible(False)
+        self.ui.current_cg = {"0": None, "1": None}
+        return False
         
     def _handle_fade_in(self, cmd):
         self.ui.pause_mode = "wait"
@@ -319,7 +398,7 @@ class CommandExecutor(object):
             self.ui.pause_mode = None
             self.ui.ExecuteUntilPause()
         duration = self._parse_float(cmd.get("duration", 1.0))
-        self._do_fade("in", duration, callback=_fade_callback)
+        self._do_fade(self.ui.fade_overlay,"in", duration, callback=_fade_callback)
         return False
     
     def _handle_fade_out(self, cmd):
@@ -328,16 +407,16 @@ class CommandExecutor(object):
             self.ui.pause_mode = None
             self.ui.ExecuteUntilPause()
         duration = self._parse_float(cmd.get("duration", 1.0))
-        self._do_fade("out", duration, callback=_fade_callback)
+        self._do_fade(self.ui.fade_overlay,"out", duration, callback=_fade_callback)
         return False
     
-    def _do_fade(self,direction, duration, callback=None):
-        if not self.ui.fade_overlay:
+    def _do_fade(self, baseControl, direction, duration, callback=None):
+        if not baseControl:
             return
-        self.ui.fade_overlay.SetVisible(True)
+        baseControl.SetVisible(True)
         if direction == "in":
             def callback_wrapper():
-                self.ui.fade_overlay.SetVisible(False)
+                baseControl.SetVisible(False)
                 if callback:
                     callback()
             anim_data = {
@@ -351,9 +430,9 @@ class CommandExecutor(object):
                 },
             }
             clientApi.RegisterUIAnimations(anim_data,override=True)
-            self.ui.fade_overlay.RemoveAnimation("alpha") # 先移除旧动画，如果不存在这里不会报错
-            self.ui.fade_overlay.SetAnimation("alpha","GameUI","fade",True)
-            self.ui.fade_overlay.SetAnimEndCallback("fade", callback_wrapper)
+            baseControl.RemoveAnimation("alpha") # 先移除旧动画，如果不存在这里不会报错
+            baseControl.SetAnimation("alpha","GameUI","fade",True)
+            baseControl.SetAnimEndCallback("fade", callback_wrapper)
         elif direction == "out":
             def callback_wrapper():
                 if callback:
@@ -369,15 +448,32 @@ class CommandExecutor(object):
                 },
             }
             clientApi.RegisterUIAnimations(anim_data,override=True)
-            self.ui.fade_overlay.RemoveAnimation("alpha")
-            self.ui.fade_overlay.SetAnimation("alpha","GameUI","fade",True)
-            self.ui.fade_overlay.SetAnimEndCallback("fade", callback_wrapper)
+            baseControl.RemoveAnimation("alpha")
+            baseControl.SetAnimation("alpha","GameUI","fade",True)
+            baseControl.SetAnimEndCallback("fade", callback_wrapper)
     
-    def _handle_set_var(self, cmd):
+    def _handle_var(self, cmd):
         var_name = cmd.get("variable")
-        if var_name:
-            self.ui.variables[var_name] = cmd.get("value")
-            logger.info("变量设置: {} = {}".format(var_name, self.ui.variables[var_name]))
+        operation = cmd.get("operation","set")
+        # 支持的操作：赋值(set)，加法(add)，减法(sub)，乘法(mul)，除法(div)
+        if var_name and operation in ("set", "add", "sub", "mul", "div"):
+            current_value = self.ui.variables.get(var_name, 0)
+            value = self._parse_var_value(cmd.get("value", 0))
+            if operation == "set":
+                new_value = value
+            elif operation == "add":
+                new_value = self._parse_float(current_value) + self._parse_float(value)
+            elif operation == "sub":
+                new_value = self._parse_float(current_value) - self._parse_float(value)
+            elif operation == "mul":
+                new_value = self._parse_float(current_value) * self._parse_float(value)
+            elif operation == "div":
+                value_num = self._parse_float(value)
+                new_value = self._parse_float(current_value) / value_num if value_num != 0 else 0
+            self.ui.variables[var_name] = new_value
+            logger.info("变量更新: {} {} {} => {}".format(var_name, operation, value, new_value))
+        else:
+            raise ValueError("无效的变量操作: variable='{}', operation='{}'".format(var_name, operation))
         return False
         
     def _handle_jump(self, cmd):
@@ -458,6 +554,30 @@ class CommandExecutor(object):
             logger.error("条件表达式执行失败: {}, error={}".format(expression, e))
             return False
             
+    @staticmethod
+    def _parse_var_value(value):
+        """解析变量值，保留布尔类型"""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, str):
+            text = value.strip()
+            lowered = text.lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+            if lowered in ("none", "null"):
+                return None
+            try:
+                if "." in text:
+                    return float(text)
+                return int(text)
+            except Exception:
+                return value
+        return value
+
     @staticmethod
     def _parse_float(value):
         """安全解析浮点数"""
