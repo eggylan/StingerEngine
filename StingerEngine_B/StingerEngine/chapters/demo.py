@@ -6,7 +6,7 @@ script_data = [
     # === 开场 ===
     {"type": "bg", "image": "textures/modTextures/demo/bg_cafe_rain"},
     {"type": "fade_in", "duration": 2.0},
-    {"type": "music", "file": "bgm_relax", "action": "play"},
+    {"type": "music", "file": "demo.bgm.relax", "action": "play"},
     {"type": "sfx", "file": "sfx_rain", "loop": True},
 
     # 旁白
@@ -75,7 +75,7 @@ script_data = [
     {"type": "text", "speaker": "少女", "content": "真的帮大忙了。我叫苏瑶，是附近美院的学生。"},
     {"type": "text", "speaker": "我", "content": "幸会，我是这里的常客。"},
 
-    {"type": "music", "file": "bgm_emotion", "action": "change", "fade": 2.0},
+    {"type": "music", "file": "demo.bgm.emotion", "action": "change", "fade": 2.0},
     {"type": "text", "speaker": "苏瑶", "content": "为了表示感谢，这杯咖啡我请你好吗？"},
 
     # === 第二个分支选择 (结局分支) ===
@@ -99,12 +99,13 @@ script_data = [
             {"type": "text", "speaker": "苏瑶", "content": "太好了！那……可以加个微信吗？下次我请你吃蛋糕！"},
             {"type": "text", "speaker": "我", "content": "好啊，求之不得。"},
             {"type": "sfx", "file": "sfx_click", "loop": False},
-            {"type": "bg", "image": "bg_street"},
+            # {"type": "bg", "image": "bg_street"},
             {"type": "character", "action": "clear"},
             {"type": "text", "speaker": "旁白", "content": "雨不知什么时候停了。"},
             {"type": "text", "speaker": "旁白", "content": "空气中弥漫着咖啡和泥土的清香。"},
             {"type": "show_image", "image": "img_cg_good"},
-            {"type": "text", "speaker": "系统", "content": "【结局：雨后的约定】"}
+            {"type": "text", "speaker": "系统", "content": "【结局：雨后的约定】"},
+            {"type": "jump", "target": "the_end"}
         ],
         "false_commands": [
             {"type": "jump", "target": "end_normal"}
@@ -116,7 +117,7 @@ script_data = [
     {"type": "character", "image": "char_yao_normal", "action": "update", "expression": "slight_sad"},
     {"type": "text", "speaker": "我", "content": "咖啡就不用啦，举手之劳而已。"},
     {"type": "text", "speaker": "苏瑶", "content": "这样啊……好吧，那真的谢谢你了。"},
-    {"type": "bg", "image": "bg_street"},
+    # {"type": "bg", "image": "bg_street"},
     {"type": "character", "action": "clear"},
     {"type": "text", "speaker": "", "content": "她向我挥挥手，转身走进了雨幕中。"},
     {"type": "text", "speaker": "", "content": "虽然有些遗憾，但这也是不错的午后插曲。"},
@@ -124,7 +125,8 @@ script_data = [
     {"type": "text", "speaker": "系统", "content": "【结局：擦肩而过】"},
 
     # === 结束 ===
-    {"type": "fade_out", "duration": 3.0},
+    {"type": "label", "name": "the_end"},
     {"type": "music", "action": "stop", "fade": 2.0},
+    {"type": "fade_out", "duration": 3.0},
     {"type": "return_to_title"}
 ]

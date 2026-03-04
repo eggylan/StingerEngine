@@ -29,7 +29,7 @@ class MainInterfaceUI(ScreenNode):
 
 	def OnStartNewGame(self, args):
 		clientApi.PopScreen()
-		EngineClient.CreateGameUI("demo")
+		EngineClient.CreateGameUI("main")
 	
 	def OnExit(self, args):
 		EngineClient.ForceDisconnect()

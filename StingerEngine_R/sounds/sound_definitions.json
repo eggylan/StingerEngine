@@ -1,0 +1,40 @@
+{
+    "dy_load_list": [
+        "sounds/mod/demo/bgm/bgm_relax"
+    ],
+    "format_version": "1.14.0",
+    "sound_definitions": {
+        "stinger.silence": { 
+            "category": "ui",
+            "sounds": [
+                {
+                    "name": "sounds/mod/default/silence",
+                    "stream": false,
+                    "volume": 0
+                }
+            ]
+        },
+        "demo.bgm.relax": {
+            "category": "record",
+            "sounds": [
+                {
+                    "name": "sounds/mod/demo/bgm/bgm_relax",
+                    "stream": true,
+                    "volume": 0.5,
+                    "load_on_low_memory": true
+                }
+            ]
+        },
+        "demo.bgm.emotion": {
+            "category": "record",
+            "sounds": [
+                {
+                    "name": "sounds/mod/demo/bgm/bgm_emotion",
+                    "stream": true,
+                    "volume": 0.5,
+                    "load_on_low_memory": true
+                }
+            ]
+        }
+    }
+}
