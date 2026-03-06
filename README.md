@@ -1,152 +1,308 @@
-# StingerEngine
+# Stinger Engine
 
-**StingerEngine** 是一个基于 **我的世界（Minecraft）网易版** 的视觉小说开发框架，以 Add-on 形式运行。该框架提供了丰富的剧情表现功能，让开发者能够在 Minecraft 中轻松制作视觉小说类游戏。
+Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的视觉小说开发框架，目标是在 Minecraft 场景内提供接近 AVG / VN 的剧情表现能力。
 
----
+当前仓库已经包含一套可运行的基础框架：
 
-## 功能特性
+- 客户端主界面、游戏界面、错误界面
+- 剧情脚本解释器
+- 打字机文本效果
+- 背景切换、CG 显示、淡入淡出
+- 角色立绘进场、切换、移动、隐藏
+- BGM / SFX 播放控制
+- 菜单分支、变量系统、条件判断、标签跳转
+- 一个完整的 demo 剧本《雨后的咖啡香》
 
-- 📝 **对话文本显示** — 支持角色名与对话内容，内置打字机逐字显示效果
-- 🖼️ **背景切换** — 动态切换场景背景图
-- 🎵 **音乐与音效控制** — 播放/停止背景音乐（BGM）与音效（SFX），支持淡出
-- 🌫️ **淡入 / 淡出过渡** — 场景切换时的屏幕过渡动画
-- 🗂️ **分支选择菜单** — 提供玩家可选择的选项分支
-- 🔢 **变量系统** — 在剧本中设置和读取任意变量（如好感度等）
-- ❓ **条件判断** — 根据变量值执行不同的剧情命令
-- 🏷️ **标签 / 跳转** — 通过 `label` 和 `jump` 实现剧情流程跳转
-- 🛡️ **错误处理界面** — 脚本运行时异常会显示专用错误 UI
-- 📦 **章节脚本系统** — 剧本以 Python 数据结构编写，便于扩展和维护
+## ⚠️⚠️ Alpha 阶段警告
 
----
+**本项目仍处于 Alpha 阶段，适合继续开发、验证设计和做原型，但暂不适合作为稳定发行版直接投入生产。**
 
-## 项目结构
+当前的限制包括：
 
-```
-StingerEngine/
-├── StingerEngine_B/              # 行为包（Behavior Pack）
-│   ├── manifest.json
-│   ├── entities/
-│   │   └── player.json           # 玩家实体（含断开连接事件）
-│   └── StingerEngine/            # Mod 主体代码
-│       ├── modMain.py            # 入口，注册客户端与服务端系统
-│       ├── EngineServer.py       # 服务端系统（玩家管理、断线处理）
-│       ├── EngineClient.py       # 客户端系统（UI 管理、BGM 控制）
-│       ├── include/
-│       │   ├── modconfig.py      # 配置常量
-│       │   ├── clientTools.py    # 客户端工具函数（音频、通知）
-│       │   └── serverTools.py    # 服务端工具函数（Player 类）
-│       ├── uiScript/
-│       │   ├── MainInterfaceUI.py  # 主菜单界面脚本
-│       │   ├── GameUI.py           # 游戏界面脚本（剧本执行引擎）
-│       │   └── ErrorUI.py          # 错误界面脚本
-│       └── chapters/
-│           └── demo.py           # 内置演示章节脚本
-└── StingerEngine_R/              # 资源包（Resource Pack）
-    ├── manifest.json
-    ├── ui/                       # UI 布局定义（JSON）
-    │   ├── MainInterfaceUI.json
-    │   ├── GameUI.json
-    │   └── ErrorUI.json
-    └── textures/
-        └── modTextures/          # Mod 内置贴图资源
-```
+- API、脚本命令格式等仍可能变动
+- 错误处理尚未完善
+- 当前服务端逻辑为单人体验，多人进入时会被主动断开
+- demo 资源和脚本主要用于验证功能，不代表最终项目结构已经冻结
 
----
+如果你准备基于本项目继续扩展，建议先在分支中验证自己的章节结构、资源规范和 UI 需求，再逐步固化接口。
+
+## 项目定位
+
+本项目是一个“Minecraft 中国版视觉小说运行壳”。
+
+行为包负责：
+
+- 注册客户端 / 服务端系统
+- 载入章节脚本
+- 解释剧情命令并驱动 UI
+- 处理玩家进入、退出和单人限制
+
+资源包负责：
+
+- UI 定义文件
+- 音频定义
+- 图片、立绘、背景、CG 等资源
+
+## 当前能力
+
+脚本解释器已经支持以下剧情命令类型：
+
+- label
+- text
+- bg
+- fade_in
+- fade_out
+- wait
+- show_image
+- hide_image
+- var
+- jump
+- condition
+- menu
+- music
+- sfx
+- return_to_title
+- character_enter
+- character_show
+- character_update
+- character_play_anim
+- character_hide
+- character_clear
+- character_move
+- character_scale
+
+这意味着你已经可以组织出带有分支、条件解锁和基础演出效果的完整短篇剧情。
+
+## 目录说明
+
+目录如下：
+
+- StingerEngine_B/
+	行为包。包含 Python 脚本、章节、系统注册与运行逻辑。
+- StingerEngine_R/
+	资源包。包含 UI、声音定义、贴图与演示资源。
+- docs/
+	项目文档。
+
+行为包内部重点结构：
+
+- StingerEngine/modMain.py
+	AddOn 注册入口。
+- StingerEngine/EngineClient.py
+	客户端系统，负责 UI 初始化与界面切换。
+- StingerEngine/EngineServer.py
+	服务端系统，负责玩家管理和单人限制。
+- StingerEngine/include/
+	公共配置、客户端工具、服务端工具、剧情解释器。
+- StingerEngine/chapters/
+	剧情章节脚本。
+- StingerEngine/uiScript/
+	界面脚本。
+
+## 已有内容
+
+仓库当前包含一个可直接运行的示例章节：
+
+- 章节入口：StingerEngine_B/StingerEngine/chapters/main.py
+- 示例剧本：StingerEngine_B/StingerEngine/chapters/demo.py
+
+示例剧本《雨后的咖啡香》演示了这些能力：
+
+- 对话推进
+- 角色登场与表情切换
+- BGM 和音效播放
+- 分支选择
+- 好感度变量
+- 条件分支解锁隐藏结局
+- 结局跳转与返回标题
 
 ## 快速开始
 
-### 环境要求
+### 1. 打开工程
 
-- 我的世界（Minecraft）**网易版**，引擎版本 **≥ 1.18.0**
-- 章节脚本使用 Python 编写，由 Minecraft 网易版引擎内置的 Python 运行时执行，**无需额外安装 Python 环境**
+使用 MC Studio 打开当前 AddOn 工程目录。
 
-### 安装
+工程名称：Stinger Engine
 
-1. 将 `StingerEngine_B` 文件夹放入存档的行为包目录，将 `StingerEngine_R` 放入资源包目录。
-2. 确认存档根目录下的 `world_behavior_packs.json` 和 `world_resource_packs.json` 中已引用对应包的 `pack_id`（项目已包含示例配置文件）。
-3. 启动存档后，框架会自动初始化，显示主菜单界面。
+命名空间：stinger
 
-### 编写章节脚本
+最低引擎版本：1.18.0
 
-在 `StingerEngine_B/StingerEngine/chapters/` 目录下创建新的 Python 文件，参照 `demo.py` 的格式编写剧本数据：
+### 2. 运行默认流程
+
+当前默认入口为：
+
+- 加载主界面
+- 点击开始
+- 进入章节 main
+- main 再导入 demo.script_data
+
+如果你没有修改入口逻辑，直接运行后就会进入演示流程。
+
+### 3. 新增自己的章节
+
+在 StingerEngine_B/StingerEngine/chapters/ 下新增一个 Python 文件，例如：
 
 ```python
 # -*- coding: utf-8 -*-
+
 script_data = [
-    {"type": "bg", "image": "textures/modTextures/your_bg"},
-    {"type": "fade_in", "duration": 1.5},
-    {"type": "music", "file": "your_bgm", "action": "play"},
-
-    {"type": "text", "speaker": "角色A", "content": "你好，世界！"},
-    {
-        "type": "menu",
-        "title": "你想怎么回应？",
-        "choices": [
-            {"label": "route_a", "text": "热情地打招呼"},
-            {"label": "route_b", "text": "沉默不语"}
-        ]
-    },
-
-    {"type": "label", "name": "route_a"},
-    {"type": "set_var", "variable": "favorability", "value": 1},
-    {"type": "text", "speaker": "我", "content": "你好！"},
-    {"type": "jump", "target": "end"},
-
-    {"type": "label", "name": "route_b"},
-    {"type": "text", "speaker": "我", "content": "（保持沉默）"},
-
-    {"type": "label", "name": "end"},
-    {"type": "fade_out", "duration": 2.0},
-    {"type": "return_to_title"}
+		{"type": "bg", "image": "textures/modTextures/default/bg_room"},
+		{"type": "fade_in", "duration": 1.0},
+		{"type": "text", "speaker": "旁白", "content": "新的故事开始了。"},
+		{"type": "return_to_title"}
 ]
 ```
 
-在 `MainInterfaceUI.py` 中将章节名传入 `CreateGameUI`：
+然后在主界面或其他入口中调用对应章节名，例如：
 
 ```python
 EngineClient.CreateGameUI("your_chapter_name")
 ```
 
----
+### 4. 修改默认章节入口
 
-## 剧本命令参考
+当前主入口文件为 StingerEngine_B/StingerEngine/chapters/main.py，它默认执行：
 
-| 命令类型 | 说明 | 示例 |
-|---|---|---|
-| `text` | 显示对话文本，可选 `typewriter_speed` 控制打字速度（单位：秒/次，默认 0.03） | `{"type": "text", "speaker": "苏瑶", "content": "你好", "typewriter_speed": 0.05}` |
-| `bg` | 切换背景图 | `{"type": "bg", "image": "textures/modTextures/bg_cafe"}` |
-| `fade_in` | 淡入效果 | `{"type": "fade_in", "duration": 1.0}` |
-| `fade_out` | 淡出效果 | `{"type": "fade_out", "duration": 1.0}` |
-| `wait` | 等待指定秒数 | `{"type": "wait", "duration": 0.5}` |
-| `music` | 控制背景音乐（`play` / `stop` / `change`） | `{"type": "music", "file": "bgm_name", "action": "play"}` |
-| `sfx` | 播放音效 | `{"type": "sfx", "file": "sfx_door", "loop": false}` |
-| `set_var` | 设置变量 | `{"type": "set_var", "variable": "score", "value": 10}` |
-| `label` | 定义跳转锚点 | `{"type": "label", "name": "scene_2"}` |
-| `jump` | 跳转到标签 | `{"type": "jump", "target": "scene_2"}` |
-| `condition` | 条件判断 | `{"type": "condition", "condition": "score >= 5", "true_commands": [...], "false_commands": [...]}` |
-| `menu` | 显示选择菜单 | `{"type": "menu", "title": "请选择", "choices": [{"label": "a", "text": "选项A"}]}` |
-| `return_to_title` | 返回主菜单 | `{"type": "return_to_title"}` |
+```python
+from demo import script_data as script_data
+```
 
----
+你可以将它改成自己的章节模块，或者保留 main.py 作为统一转发入口。
 
-## 内置演示
+## 脚本格式概览
 
-项目内置了一个完整的演示章节 **《雨后的咖啡香》**（`chapters/demo.py`），展示了以下功能：
+剧情以 Python 列表形式组织，每个元素是一个命令字典。示例：
 
-- 场景背景与音乐切换
-- 多角色对话
-- 两段分支选择
-- 变量记录（好感度）
-- 条件判断与多结局
-- 淡入 / 淡出过渡
+```python
+script_data = [
+		{"type": "var", "variable": "favorability", "operation": "set", "value": 0},
+		{"type": "bg", "image": "textures/modTextures/demo/bg_cafe_rain"},
+		{"type": "text", "speaker": "我", "content": "这是一句对白。"},
+		{
+				"type": "menu",
+				"title": "如何回应？",
+				"choices": [
+						{"label": "route_a", "text": "选项 A"},
+						{"label": "route_b", "text": "选项 B"}
+				]
+		},
+		{"type": "label", "name": "route_a"},
+		{"type": "text", "speaker": "系统", "content": "进入 A 路线。"}
+]
+```
 
-在主菜单点击 **"新游戏"** 即可体验演示剧情。
+### 条件表达式
 
----
+当前条件判断不依赖 eval，而是使用内置表达式解析器。已支持：
 
-## 版本信息
+- 比较运算：>、<、>=、<=、==、!=
+- 逻辑关键字：[and]、[or]、[not]
+- 括号
+- 数字、布尔值、变量名
 
-| 项目 | 版本 |
-|---|---|
-| StingerEngine | 0.0.1 |
-| 最低引擎版本 | Minecraft 网易版 1.18.0 |
+示例：
+
+```python
+{
+		"type": "condition",
+		"condition": "favorability >= 1 [and] found_notebook == True",
+		"true_commands": [
+				{"type": "jump", "target": "good_end"}
+		],
+		"false_commands": [
+				{"type": "jump", "target": "normal_end"}
+		]
+}
+```
+
+## 资源约定
+
+资源命名约定大致如下：
+
+- 背景 / 立绘 / CG 通过图片路径引用
+- BGM / SFX 通过 sound_definitions.json 中定义的音频 ID 引用
+- demo 音频前缀采用 demo.bgm.* 和 demo.sfx.*
+
+例如：
+
+- 背景图：textures/modTextures/demo/bg_cafe_rain
+- 立绘：textures/modTextures/demo/char_yao_normal
+- BGM：demo.bgm.relax
+- 音效：demo.sfx.door_open
+
+建议你在正式项目中统一规划：
+
+- 章节前缀
+- 角色 ID
+- 图片命名
+- 音频命名
+- UI 资源目录
+
+否则后续剧本规模扩大后会很难维护。
+
+## 当前已知限制
+
+- 仅单人游戏，多人会自动断开新加入玩家
+- 错误处理不完善
+- 章节资源、UI 样式和脚本还在演进中
+
+## FAQ
+
+### 1. 这个项目是游戏成品吗？
+
+不是。它更接近一个视觉小说开发框架和演示工程，而不是完整成品游戏。
+
+### 2. 为什么多人进入时会被踢出？
+
+因为当前服务端实现按单人体验设计。第二名玩家进入时会触发主动断开逻辑，避免多人状态与剧情 UI 流程互相干扰。
+
+### 3. 如何切换到自己的剧本？
+
+最简单的做法是：
+
+- 在 chapters 目录新增章节文件
+- 保持导出变量名为 script_data
+- 在 main.py 中导入你的 script_data
+- 或在入口 UI 中直接调用 CreateGameUI("你的章节名")
+
+### 4. 报“未找到章节脚本”怎么办？
+
+优先检查：
+
+- 文件是否位于 StingerEngine_B/StingerEngine/chapters/
+- 文件名是否与传入的 entry 一致
+- 模块内是否导出了 script_data
+- Python 文件编码和语法是否正确
+
+### 5. 可以直接扩展成多章节项目吗？
+
+可以。当前结构已经适合把每个章节拆到独立 Python 文件中，再由统一入口或章节选择界面进行跳转。
+
+### 6. 可以做多人联机剧情吗？
+
+理论上可以，但当前实现没有为多人状态同步、分支一致性、UI 生命周期冲突和音频表现做设计。如果要支持多人，需要重构服务端状态管理和客户端会话模型。
+
+### 7. 为什么这里用 Python 写剧情？
+
+因为当前工程直接运行在网易版 AddOn / ModAPI 的 Python 脚本体系中，使用 Python 列表和字典描述剧情命令，调试成本较低，适合快速迭代原型。
+
+## 版权与许可证
+
+本项目的代码部分，采用 Apache License 2.0 进行许可。
+
+你可以：
+
+- 使用、修改和分发代码
+- 在保留许可证与声明的前提下进行二次开发
+- 在商业或非商业项目中使用
+
+你需要注意：
+
+- 需要保留原始版权声明与许可证文本
+- 修改后应明确说明变更
+- 本项目按“现状”提供，不附带任何明示或暗示担保
+
+
+
+本项目内附的demo中的剧本、美术、音频等，皆为CC0协议或AI生成，旨在验证可行性，不受 Apache License 2.0 影响。

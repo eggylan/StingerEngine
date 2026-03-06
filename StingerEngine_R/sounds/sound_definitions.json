@@ -20,7 +20,7 @@
                 {
                     "name": "sounds/mod/demo/bgm/bgm_relax",
                     "stream": true,
-                    "volume": 0.5,
+                    "volume": 0.3,
                     "load_on_low_memory": true
                 }
             ]
@@ -31,10 +31,30 @@
                 {
                     "name": "sounds/mod/demo/bgm/bgm_emotion",
                     "stream": true,
-                    "volume": 0.5,
+                    "volume": 0.3,
                     "load_on_low_memory": true
                 }
             ]
+        },
+        "demo.sfx.door_open":{
+            "category" : "ui",
+            "sounds": [
+                {
+                    "name": "sounds/mod/demo/sfx/door_open",
+                    "stream": false,
+                    "volume": 1.0
+                }
+            ]   
+        },
+        "demo.sfx.bell_click":{
+            "category" : "ui",
+            "sounds": [
+                {
+                    "name": "sounds/mod/demo/sfx/bell_click",
+                    "stream": false,
+                    "volume": 1.0
+                }
+            ]   
         }
     }
 }

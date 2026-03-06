@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import mod.server.extraServerApi as serverApi
-from mod_log import logger as logger
 from include.modconfig import *
-from include.serverTools import Player, ExecuteCommand
+from include.serverTools import Player, ExecuteCommand, logger
 ServerSystem = serverApi.GetServerSystemCls()
 
 

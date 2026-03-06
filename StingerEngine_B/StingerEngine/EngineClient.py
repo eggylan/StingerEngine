@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import mod.client.extraClientApi as clientApi
-from mod_log import logger as logger
 from include.modconfig import *
-from include.clientTools import compCustomAudio
+from include.clientTools import logger, compCustomAudio
 ClientSystem = clientApi.GetClientSystemCls()
 
 

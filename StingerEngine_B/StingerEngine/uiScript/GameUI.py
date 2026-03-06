@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import mod.client.extraClientApi as clientApi
 import traceback
-from mod_log import logger as logger
 from ..include.modconfig import *
-from ..include.clientTools import compGame, PlayBGM, PlayUISound, StopMusic
+from ..include.clientTools import logger, compGame, PlayBGM, PlayUISound, StopMusic
 from ..include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
 ViewBinder = clientApi.GetViewBinderCls()
 ViewRequest = clientApi.GetViewViewRequestCls()
@@ -70,7 +69,7 @@ class GameUI(ScreenNode):
         typewriter_speed = self.param.get("typewriter_speed", 0.03)
         self.typewriter = TypewriterEffect(self.dialog_label, typewriter_speed)
         self.executor = CommandExecutor(self)
-        self.character_manager = CharacterManager(self.stage_panel)
+        self.character_manager = CharacterManager(self, self.stage_panel)
         self.menu_manager = MenuManager(self)
         # 构建标签索引
         self._build_label_index()
@@ -93,16 +92,9 @@ class GameUI(ScreenNode):
 
     def ExecuteUntilPause(self):
         """执行剧本直到遇到暂停"""
-        max_steps = 500
         steps = 0
         
         while self.pause_mode is None:
-            if steps >= max_steps:
-                logger.error("剧情执行超过安全步数，疑似存在循环跳转")
-                self.pause_mode = "ended"
-                self.typewriter.start("剧情执行异常：疑似循环跳转")
-                return
-            
             # 优先执行内联命令队列（condition 内暂停后的剩余命令）
             if self.inline_queue:
                 command = self.inline_queue.pop(0)
@@ -176,6 +168,8 @@ class GameUI(ScreenNode):
             self.typewriter.stop()
         if self.menu_manager:
             self.menu_manager._clear_choices()
+        if self.character_manager:
+            self.character_manager.destroy()
         self.pause_mode = "ended"
         
     def OnActive(self):

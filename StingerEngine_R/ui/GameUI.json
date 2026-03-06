@@ -273,6 +273,7 @@
             "100%+0px"
         ],
         "layer": 1,
+        "propagate_alpha": true,
         "controls": [
             {
                 "character_image_base": {
@@ -280,11 +281,11 @@
                     "anchor_from": "bottom_middle",
                     "anchor_to": "bottom_middle",
                     "size": [
-                        "81%+0px",
+                        "90%+0px",
                         "92%+0px"
                     ],
                     "layer": 2,
-                    "texture": "textures/modTextures/default/warning_alex",
+                    "propagate_alpha": true,
                     "controls": [
                         {
                             "character_image_emotion": {
@@ -307,7 +308,7 @@
         "type": "panel",
         "size": [
             "100%+0px",
-            23.0
+            18.0
         ],
         "layer": 1,
         "controls": [
@@ -315,8 +316,8 @@
                 "choice_button@common.button": {
                     "type": "button",
                     "$control_alpha": 1.0,
-                    "$default_texture": "textures/netease/common/button/default",
-                    "$hover_texture": "textures/netease/common/button/hover",
+                    "$default_texture": "textures/netease/download/btn01@3x",
+                    "$hover_texture": "textures/netease/download/btn01_click@3x",
                     "$is_new_nine_slice": false,
                     "$label_color": [
                         1,
@@ -342,7 +343,7 @@
                         0
                     ],
                     "$pressed_button_name": "%netease_editor_template_namespace.click",
-                    "$pressed_texture": "textures/netease/common/button/pressed",
+                    "$pressed_texture": "textures/netease/download/btn01_click@3x",
                     "$texture_layer": 2,
                     "size": [
                         "100%+0px",
@@ -383,7 +384,7 @@
         "type": "panel",
         "size": [
             "100%+0px",
-            23.0
+            18.0
         ],
         "layer": 1
     },

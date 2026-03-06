@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import mod.client.extraClientApi as clientApi
-from mod_log import logger as logger
-from clientTools import compGame, PlayBGM, PlayUISound, StopMusic
+from clientTools import logger, compGame, PlayBGM, PlayUISound, StopMusic
 from modconfig import *
 
 EngineClient = clientApi.GetSystem(MOD_NAME, CLIENT_NAME)
@@ -14,7 +13,7 @@ class TypewriterEffect(object):
         self.full_text = ""
         self.current_index = 0
         self.is_active = False
-        self.chars_per_tick = 3  # 每次显示3个字符,提升性能
+        self.chars_per_tick = 3  # 每次显示3个字符
         
     def start(self, text, speed=None):
         """开始打字机效果"""
@@ -261,6 +260,14 @@ class CommandExecutor(object):
             "music": self._handle_music,
             "sfx": self._handle_sfx,
             "return_to_title": self._handle_return,
+            "character_enter": self._handle_character_enter,
+            "character_show": self._handle_character_show,
+            "character_update": self._handle_character_update,
+            "character_play_anim": self._handle_character_play_anim,
+            "character_hide": self._handle_character_hide,
+            "character_clear": self._handle_character_clear,
+            "character_move": self._handle_character_move,
+            "character_scale": self._handle_character_scale,
         }
         
     def execute(self, command):
@@ -274,10 +281,6 @@ class CommandExecutor(object):
         if handler:
             return handler(command)
         
-        # todo: 支持更多命令类型
-        if cmd_type in ("character", "action"):
-            return False
-            
         logger.warn("未识别的剧情命令: {}".format(cmd_type))
         return False
         
@@ -528,7 +531,82 @@ class CommandExecutor(object):
         clientApi.PopScreen()
         EngineClient.CreateMainInterfaceUI()
         return True
-        
+
+    # ------------------------------------------------------------------
+    #  角色指令处理
+    # ------------------------------------------------------------------
+
+    def _handle_character_enter(self, cmd):
+        char_id = cmd.get("id")
+        if not char_id:
+            logger.warn("character_enter 缺少 id 字段")
+            return False
+        image = cmd.get("image")
+        position = cmd.get("position", "center")
+        fade_in = self._parse_float(cmd.get("fade_in", 0))
+        return self.ui.character_manager.enter(char_id, image, position, fade_in)
+
+    def _handle_character_show(self, cmd):
+        char_id = cmd.get("id")
+        if not char_id:
+            logger.warn("character_show 缺少 id 字段")
+            return False
+        image = cmd.get("image")
+        position = cmd.get("position", "center")
+        return self.ui.character_manager.show(char_id, image, position)
+
+    def _handle_character_update(self, cmd):
+        char_id = cmd.get("id")
+        if not char_id:
+            logger.warn("character_update 缺少 id 字段")
+            return False
+        image = cmd.get("image")
+        expression = cmd.get("expression")
+        transition = self._parse_float(cmd.get("transition", 0))
+        return self.ui.character_manager.update(char_id, image, expression, transition)
+
+    def _handle_character_play_anim(self, cmd):
+        char_id = cmd.get("id")
+        if not char_id:
+            logger.warn("character_play_anim 缺少 id 字段")
+            return False
+        animdata = cmd.get("animdata")
+        loop = bool(cmd.get("loop", False))
+        speed = self._parse_float(cmd.get("speed", 1.0)) or 1.0
+        return self.ui.character_manager.play_anim(char_id, animdata, loop, speed)
+
+    def _handle_character_hide(self, cmd):
+        char_id = cmd.get("id")
+        if not char_id:
+            logger.warn("character_hide 缺少 id 字段")
+            return False
+        fade_out = self._parse_float(cmd.get("fade_out", 0))
+        return self.ui.character_manager.hide(char_id, fade_out)
+
+    def _handle_character_clear(self, cmd):
+        fade_out = self._parse_float(cmd.get("fade_out", 0))
+        return self.ui.character_manager.clear(fade_out)
+
+    def _handle_character_move(self, cmd):
+        char_id = cmd.get("id")
+        pause_during_move = bool(cmd.get("pause", True))
+        if not char_id:
+            logger.warn("character_move 缺少 id 字段")
+            return False
+        target = cmd.get("position", "center")
+        duration = self._parse_float(cmd.get("duration", 0.5))
+        return self.ui.character_manager.move(char_id, target, duration, pause_during_move)
+
+    def _handle_character_scale(self, cmd):
+        char_id = cmd.get("id")
+        if not char_id:
+            logger.warn("character_scale 缺少 id 字段")
+            return False
+        scale_x = self._parse_float(cmd.get("scale_x", 1.0)) or 1.0
+        scale_y = self._parse_float(cmd.get("scale_y", 1.0)) or 1.0
+        duration = self._parse_float(cmd.get("duration", 0))
+        return self.ui.character_manager.scale(char_id, scale_x, scale_y, duration)
+
     def _execute_inline(self, commands):
         """执行内联命令列表"""
         if not isinstance(commands, list):
@@ -587,8 +665,488 @@ class CommandExecutor(object):
             return 0.0
 
 class CharacterManager(object):
-    def __init__(self, stage_panel):
+    """角色立绘管理器：管理舞台上角色面板的创建、显示、更新、移动、缩放和清除
+
+    每个角色通过 GameUI.character 模板动态创建到 stage_panel 下，
+    使用 SetFullPosition 实现基于百分比的定位。
+    """
+
+    # 位置预设（基于bottom_middle锚点的X轴偏移，relativeValue 乘以父容器宽度）
+    POSITIONS = {
+        "left":         -0.25,
+        "center_left":  -0.12,
+        "center":        0.0,
+        "center_right":  0.12,
+        "right":         0.25,
+    }
+
+    # 默认角色图片尺寸占比（相对父容器）
+    DEFAULT_SCALE_X = 0.30    # 30% 宽
+    DEFAULT_SCALE_Y = 0.92    # 92% 高
+
+    def __init__(self, ui_instance, stage_panel):
+        """
+        Args:
+            ui_instance: GameUI (ScreenNode) 实例，用于 CreateChildControl / RemoveChildControl
+            stage_panel: 舞台面板控件（角色控件的父容器）
+        """
+        self.ui = ui_instance
         self.stage_panel = stage_panel
+        self.characters = {}    # {char_id: dict}
+        self._anim_counter = 0
+
+    #  公共方法
+    def enter(self, char_id, image, position="center", fade_in=0):
+        """角色入场（带可选淡入动画）
+
+        Args:
+            char_id:  角色唯一标识
+            image:    贴图路径（传给 SetSprite）
+            position: 位置名称或 float 偏移量
+            fade_in:  淡入时长（秒），0 表示直接显示
+
+        Returns:
+            bool: 是否需要暂停脚本执行
+        """
+        if char_id in self.characters:
+            self._remove_character(char_id)
+
+        control, image_base, image_emotion = self._create_character_control(char_id, image, position)
+        if not control:
+            return False
+
+        if fade_in > 0:
+            self.ui.pause_mode = "wait"
+            anim_name = self._next_anim_name("char_enter")
+
+            def _on_done():
+                if self.ui.pause_mode != "wait":
+                    return
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+
+            self._fade_appear(control, fade_in, anim_name, callback=_on_done)
+            return True
+        else:
+            control.SetVisible(True)
+            return False
+
+    def show(self, char_id, image, position="center"):
+        """直接显示角色（无入场动画）"""
+        if char_id in self.characters:
+            self._remove_character(char_id)
+
+        control, image_base, image_emotion = self._create_character_control(char_id, image, position)
+        if not control:
+            return False
+
+        control.SetVisible(True)
+        return False
+
+    def update(self, char_id, image=None, expression=None, transition=0):
+        """更新角色外观（图片/表情），可选带过渡动画
+
+        transition > 0时执行 淡出→换图→淡入 动画。
+        """
+        char_data = self.characters.get(char_id)
+        if not char_data:
+            logger.warn("角色不存在，无法更新: {}".format(char_id))
+            return False
+
+        if transition > 0 and image:
+            self.ui.pause_mode = "wait"
+            control = char_data["control"]
+            half = transition / 2.0
+            anim_out = self._next_anim_name("char_upd_out")
+            anim_in  = self._next_anim_name("char_upd_in")
+
+            def _on_out():
+                if char_id not in self.characters:
+                    return
+                char_data["image_base"].asImage().SetSprite(image)
+                char_data["image"] = image
+                if expression:
+                    char_data["image_emotion"].asImage().SetSprite(expression)
+                    char_data["image_emotion"].SetVisible(True)
+
+                def _on_in():
+                    if self.ui.pause_mode != "wait":
+                        return
+                    self.ui.pause_mode = None
+                    self.ui.ExecuteUntilPause()
+
+                self._fade_appear(control, half, anim_in, callback=_on_in)
+
+            self._fade_disappear(control, half, anim_out, callback=_on_out)
+            return True
+        else:
+            if image:
+                char_data["image_base"].asImage().SetSprite(image)
+                char_data["image"] = image
+            if expression:
+                char_data["image_emotion"].asImage().SetSprite(expression)
+                char_data["image_emotion"].SetVisible(True)
+            return False
+
+    def play_anim(self, char_id, animdata, loop=False, speed=1.0):
+        """播放角色自定义动画
+
+        animdata 为动画定义字典，格式同 RegisterUIAnimations 中的动画，例如:
+            {"anim_type": "offset", "duration": 0.5, "from": [0,0], "to": [10,0]}
+
+        loop=True  时动画循环播放，脚本不暂停。
+        loop=False 时脚本暂停直到动画结束。
+        """
+        char_data = self.characters.get(char_id)
+        if not char_data:
+            logger.warn("角色不存在，无法播放动画: {}".format(char_id))
+            return False
+
+        if not animdata or not isinstance(animdata, dict):
+            logger.warn("character_play_anim 的 animdata 无效")
+            return False
+
+        control = char_data["image_base"]
+        anim_name = self._next_anim_name("char_anim")
+        anim_def = dict(animdata)  # 浅拷贝，避免修改原始数据
+
+        if speed > 0 and speed != 1.0 and "duration" in anim_def:
+            anim_def["duration"] = anim_def["duration"] / speed
+
+        if loop and "next" not in anim_def:
+            anim_def["next"] = "@GameUI.{}".format(anim_name)
+
+        anim_type = anim_def.get("anim_type", "offset")
+        reg_data = {"namespace": "GameUI", anim_name: anim_def}
+        clientApi.RegisterUIAnimations(reg_data, override=True)
+
+        control.RemoveAnimation(anim_type)
+        control.SetAnimation(anim_type, "GameUI", anim_name, True)
+
+        if not loop:
+            self.ui.pause_mode = "wait"
+
+            def _on_anim_done():
+                control.RemoveAnimation(anim_type)
+                if self.ui.pause_mode != "wait":
+                    return
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+
+            control.SetAnimEndCallback(anim_name, _on_anim_done)
+            return True
+
+        return False
+
+    def hide(self, char_id, fade_out=0):
+        """隐藏并移除单个角色"""
+        char_data = self.characters.get(char_id)
+        if not char_data:
+            return False
+
+        if fade_out > 0:
+            self.ui.pause_mode = "wait"
+            anim_name = self._next_anim_name("char_hide")
+            control = char_data["control"]
+
+            def _on_done():
+                self._remove_character(char_id)
+                if self.ui.pause_mode != "wait":
+                    return
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+
+            self._fade_disappear(control, fade_out, anim_name, callback=_on_done)
+            return True
+        else:
+            self._remove_character(char_id)
+            return False
+
+    def clear(self, fade_out=0):
+        """清除舞台上的所有角色"""
+        if not self.characters:
+            return False
+
+        ids = list(self.characters.keys())
+
+        if fade_out > 0:
+            self.ui.pause_mode = "wait"
+            pending = [len(ids)]
+
+            def _make_cb(cid):
+                def _on_done():
+                    pending[0] -= 1
+                    if pending[0] <= 0:
+                        for c in ids:
+                            self._remove_character(c)
+                        if self.ui.pause_mode != "wait":
+                            return
+                        self.ui.pause_mode = None
+                        self.ui.ExecuteUntilPause()
+                return _on_done
+
+            for cid in ids:
+                anim_name = self._next_anim_name("char_clr")
+                self._fade_disappear(
+                    self.characters[cid]["control"],
+                    fade_out,
+                    anim_name,
+                    callback=_make_cb(cid),
+                )
+            return True
+        else:
+            for cid in ids:
+                self._remove_character(cid)
+            return False
+
+    def move(self, char_id, target_position, duration=0.5,pause_during_move=True):
+        """移动角色到目标位置（带 smoothstep 缓动）
+
+        target_position 可以是预设名称（如 "left"）或一个 float 偏移量。
+        duration <= 0 时立即移动。
+        """
+        char_data = self.characters.get(char_id)
+        if not char_data:
+            logger.warn("角色不存在，无法移动: {}".format(char_id))
+            return False
+
+        image_base = char_data["image_base"]
+        end_rel = self._get_position_value(target_position)
+
+        if duration <= 0:
+            self._set_position_x(image_base, end_rel)
+            char_data["position"] = target_position
+            return False
+
+        start_rel = self._get_position_value(char_data["position"])
+        self.ui.pause_mode = "wait"
+        interval = 0.02   # ~50 FPS
+        steps_total = max(1, int(duration / interval))
+        state = {"step": 0, "timer": None}
+
+        def _tick():
+            if char_id not in self.characters:
+                if state["timer"]:
+                    compGame.CancelTimer(state["timer"])
+                return
+
+            state["step"] += 1
+            t = min(1.0, float(state["step"]) / steps_total)
+            t = t * t * (3.0 - 2.0 * t)  # smoothstep
+            current = start_rel + (end_rel - start_rel) * t
+            self._set_position_x(image_base, current)
+
+            if state["step"] >= steps_total:
+                if state["timer"]:
+                    compGame.CancelTimer(state["timer"])
+                    state["timer"] = None
+                char_data["position"] = target_position
+                if self.ui.pause_mode != "wait":
+                    return
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+
+        state["timer"] = compGame.AddRepeatedTimer(interval, _tick)
+        char_data["_move_timer"] = state["timer"]
+        return pause_during_move
+
+    def scale(self, char_id, scale_x=1.0, scale_y=1.0, duration=0):
+        """改变角色大小（带可选过渡动画）
+
+        scale_x / scale_y 为相对于默认尺寸的倍率（1.0 = 原始大小）。
+        duration <= 0 时立即缩放。
+        """
+        char_data = self.characters.get(char_id)
+        if not char_data:
+            logger.warn("角色不存在，无法缩放: {}".format(char_id))
+            return False
+
+        image_base = char_data["image_base"]
+        end_rx = self.DEFAULT_SCALE_X * scale_x
+        end_ry = self.DEFAULT_SCALE_Y * scale_y
+
+        if duration <= 0:
+            self._set_size(image_base, end_rx, end_ry)
+            return False
+
+        cur_x = image_base.GetFullSize("x")
+        cur_y = image_base.GetFullSize("y")
+        start_rx = cur_x.get("relativeValue", self.DEFAULT_SCALE_X)
+        start_ry = cur_y.get("relativeValue", self.DEFAULT_SCALE_Y)
+
+        self.ui.pause_mode = "wait"
+        interval = 0.02
+        steps_total = max(1, int(duration / interval))
+        state = {"step": 0, "timer": None}
+
+        def _tick():
+            if char_id not in self.characters:
+                if state["timer"]:
+                    compGame.CancelTimer(state["timer"])
+                return
+
+            state["step"] += 1
+            t = min(1.0, float(state["step"]) / steps_total)
+            t = t * t * (3.0 - 2.0 * t)  # smoothstep
+            cx = start_rx + (end_rx - start_rx) * t
+            cy = start_ry + (end_ry - start_ry) * t
+            self._set_size(image_base, cx, cy)
+
+            if state["step"] >= steps_total:
+                if state["timer"]:
+                    compGame.CancelTimer(state["timer"])
+                    state["timer"] = None
+                if self.ui.pause_mode != "wait":
+                    return
+                self.ui.pause_mode = None
+                self.ui.ExecuteUntilPause()
+
+        state["timer"] = compGame.AddRepeatedTimer(interval, _tick)
+        char_data["_scale_timer"] = state["timer"]
+        return True
+
+    def destroy(self):
+        """销毁所有角色控件（UI 销毁时调用）"""
+        ids = list(self.characters.keys())
+        for cid in ids:
+            self._remove_character(cid)
+
+    # 以下是内部方法
+    def _create_character_control(self, char_id, image, position):
+        """创建角色控件并存储元数据
+
+        Returns:
+            tuple: (control, image_base, image_emotion) 或 (None, None, None)
+        """
+        control = self.ui.CreateChildControl(
+            "GameUI.character",
+            "char_{}".format(char_id),
+            self.stage_panel,
+        )
+        if not control:
+            logger.error("角色控件创建失败: {}".format(char_id))
+            return None, None, None
+
+        image_base = control.GetChildByPath("/character_image_base")
+        image_emotion = control.GetChildByPath("/character_image_base/character_image_emotion")
+
+        # 设置立绘图片
+        if image:
+            image_base.asImage().SetSprite(image)
+
+        # 默认隐藏表情覆盖层（此处尚未完成）
+        if image_emotion:
+            image_emotion.SetVisible(False)
+
+        # 应用位置
+        self._apply_position(image_base, position)
+
+        self.characters[char_id] = {
+            "control": control,
+            "image_base": image_base,
+            "image_emotion": image_emotion,
+            "position": position,
+            "image": image,
+        }
+        return control, image_base, image_emotion
+
+    def _apply_position(self, image_base, position):
+        """将位置预设应用到角色控件 X 轴"""
+        rel = self._get_position_value(position)
+        self._set_position_x(image_base, rel)
+
+    def _get_position_value(self, position):
+        """将位置标识（字符串或数字）转换为 relativeValue"""
+        if isinstance(position, (int, float)):
+            return float(position)
+        return self.POSITIONS.get(position, 0.0)
+
+    @staticmethod
+    def _set_position_x(control, relative_value):
+        """设置控件x轴位置（基于父容器百分比）"""
+        control.SetFullPosition("x", {
+            "followType": "parent",
+            "relativeValue": relative_value,
+            "absoluteValue": 0,
+        })
+
+    @staticmethod
+    def _set_size(control, rel_x, rel_y):
+        """设置控件相对尺寸"""
+        control.SetFullSize("x", {"followType": "parent", "relativeValue": rel_x, "absoluteValue": 0})
+        control.SetFullSize("y", {"followType": "parent", "relativeValue": rel_y, "absoluteValue": 0})
+
+    def _remove_character(self, char_id):
+        """移除角色控件并取消关联定时器"""
+        char_data = self.characters.pop(char_id, None)
+        if not char_data:
+            return
+        # 取消可能正在运行的移动/缩放定时器
+        for key in ("_move_timer", "_scale_timer"):
+            timer = char_data.get(key)
+            if timer:
+                try:
+                    compGame.CancelTimer(timer)
+                except Exception:
+                    pass
+        control = char_data.get("control")
+        if control:
+            try:
+                self.ui.RemoveChildControl(control)
+            except Exception:
+                pass
+
+    def _next_anim_name(self, prefix="char"):
+        """生成唯一动画名称，避免多角色动画冲突"""
+        self._anim_counter += 1
+        return "{}_{}".format(prefix, self._anim_counter)
+
+    def _fade_appear(self, control, duration, anim_name, callback=None):
+        """淡入效果（alpha 0 → 1，控件从透明变为可见）"""
+        control.SetVisible(True)
+
+        def _wrapper():
+            if callback:
+                callback()
+
+        anim_data = {
+            "namespace": "GameUI",
+            anim_name: {
+                "anim_type": "alpha",
+                "duration": duration,
+                "from": 0,
+                "to": 1,
+                "next": "",
+            },
+        }
+        clientApi.RegisterUIAnimations(anim_data, override=True)
+        control.RemoveAnimation("alpha")
+        control.SetAnimation("alpha", "GameUI", anim_name, True)
+        control.SetAnimEndCallback(anim_name, _wrapper)
+
+    def _fade_disappear(self, control, duration, anim_name, callback=None):
+        """淡出效果（alpha 1 → 0，控件从可见变为透明）"""
+        control.SetVisible(True)
+
+        def _wrapper():
+            control.SetVisible(False)
+            if callback:
+                callback()
+
+        anim_data = {
+            "namespace": "GameUI",
+            anim_name: {
+                "anim_type": "alpha",
+                "duration": duration,
+                "from": 1,
+                "to": 0,
+                "next": "",
+            },
+        }
+        clientApi.RegisterUIAnimations(anim_data, override=True)
+        control.RemoveAnimation("alpha")
+        control.SetAnimation("alpha", "GameUI", anim_name, True)
+        control.SetAnimEndCallback(anim_name, _wrapper)
 
 
 class MenuManager(object):
