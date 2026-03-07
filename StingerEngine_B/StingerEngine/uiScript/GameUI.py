@@ -24,6 +24,7 @@ class GameUI(ScreenNode):
         self.variables = {}
         self.label_index = {}
         self.pending_menu = None
+        self.current_bg = None
         self.current_music = None
         self.current_cg = {"0": None, "1": None}
         self.cg_front = "0"  # 当前前景CG槽位，"0" 或 "1"
@@ -49,33 +50,38 @@ class GameUI(ScreenNode):
         
     def Create(self):
         """UI创建成功时调用"""
-        # 初始化UI控件
-        self.dialog_panel = self.GetBaseUIControl("/root_panel/dialog_panel")
-        self.dialog_label = self.GetBaseUIControl("/root_panel/dialog_panel/dialog_label").asLabel()
-        self.speaker_panel = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel")
-        self.speaker_label = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel/speaker_label").asLabel()
-        self.stage_panel = self.GetBaseUIControl("/root_panel/stage_panel")
-        self.menu_panel = self.GetBaseUIControl("/root_panel/menu_stack_panel")
-        self.touch_button = self.GetBaseUIControl("/root_panel/touch_button").asButton()
-        self.touch_button.AddTouchEventParams({"isSwallow": True})
-        self.touch_button.SetButtonTouchUpCallback(self.OnTouchButton)
-        self.bg_image = self.GetBaseUIControl("/root_panel/background_image").asImage()
-        self.cg_panel = self.GetBaseUIControl("/root_panel/cg_panel")
-        self.cg_image_0_base = self.GetBaseUIControl("/root_panel/cg_panel/cg_image_0")
-        self.cg_image_1_base = self.GetBaseUIControl("/root_panel/cg_panel/cg_image_1")
-        self.fade_overlay = self.GetBaseUIControl("/root_panel/fade_overlay").asImage()
+        try:
+            # 初始化UI控件
+            self.dialog_panel = self.GetBaseUIControl("/root_panel/dialog_panel")
+            self.dialog_label = self.GetBaseUIControl("/root_panel/dialog_panel/dialog_label").asLabel()
+            self.speaker_panel = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel")
+            self.speaker_label = self.GetBaseUIControl("/root_panel/dialog_panel/speaker_panel/speaker_label").asLabel()
+            self.stage_panel = self.GetBaseUIControl("/root_panel/stage_panel")
+            self.menu_panel = self.GetBaseUIControl("/root_panel/menu_stack_panel")
+            self.touch_button = self.GetBaseUIControl("/root_panel/touch_button").asButton()
+            self.touch_button.AddTouchEventParams({"isSwallow": True})
+            self.touch_button.SetButtonTouchUpCallback(self.OnTouchButton)
+            self.bg_image = self.GetBaseUIControl("/root_panel/background_image").asImage()
+            self.cg_panel = self.GetBaseUIControl("/root_panel/cg_panel")
+            self.cg_image_0_base = self.GetBaseUIControl("/root_panel/cg_panel/cg_image_0")
+            self.cg_image_1_base = self.GetBaseUIControl("/root_panel/cg_panel/cg_image_1")
+            self.fade_overlay = self.GetBaseUIControl("/root_panel/fade_overlay").asImage()
 
-        # 初始化组件
-        typewriter_speed = self.param.get("typewriter_speed", 0.03)
-        self.typewriter = TypewriterEffect(self.dialog_label, typewriter_speed)
-        self.executor = CommandExecutor(self)
-        self.character_manager = CharacterManager(self, self.stage_panel)
-        self.menu_manager = MenuManager(self)
-        # 构建标签索引
-        self._build_label_index()
-        # 开始执行剧本
-        self.pause_mode = None
-        self.ExecuteUntilPause()
+            # 初始化组件
+            typewriter_speed = self.param.get("typewriter_speed", 0.03)
+            self.typewriter = TypewriterEffect(self.dialog_label, typewriter_speed)
+            self.executor = CommandExecutor(self)
+            self.character_manager = CharacterManager(self, self.stage_panel)
+            self.menu_manager = MenuManager(self)
+            # 构建标签索引
+            self._build_label_index()
+            # 开始执行剧本
+            self.pause_mode = None
+            self.ExecuteUntilPause()
+        except Exception:
+            errinfo = traceback.format_exc()
+            logger.error("GameUI Create出错:\n{}".format(errinfo))
+            EngineClient.CreateErrorUI(errinfo)
         
     def OnTouchButton(self, args):
         """触摸按钮回调"""
@@ -92,32 +98,37 @@ class GameUI(ScreenNode):
 
     def ExecuteUntilPause(self):
         """执行剧本直到遇到暂停"""
-        steps = 0
-        
-        while self.pause_mode is None:
-            # 优先执行内联命令队列（condition 内暂停后的剩余命令）
-            if self.inline_queue:
-                command = self.inline_queue.pop(0)
+        try:
+            steps = 0
+            
+            while self.pause_mode is None:
+                # 优先执行内联命令队列（condition 内暂停后的剩余命令）
+                if self.inline_queue:
+                    command = self.inline_queue.pop(0)
+                    steps += 1
+                    if isinstance(command, dict) and self.executor.execute(command):
+                        return
+                    continue
+                
+                # 主脚本
+                if self.current_index >= len(self.script_data):
+                    break
+                    
+                command = self.script_data[self.current_index]
+                self.current_index += 1
                 steps += 1
-                if isinstance(command, dict) and self.executor.execute(command):
+                
+                if self.executor.execute(command):
                     return
-                continue
-            
-            # 主脚本
-            if self.current_index >= len(self.script_data):
-                break
-                
-            command = self.script_data[self.current_index]
-            self.current_index += 1
-            steps += 1
-            
-            if self.executor.execute(command):
-                return
-                
-        # 剧本执行完毕
-        if self.current_index >= len(self.script_data) and self.pause_mode is None and not self.inline_queue:
-            self.pause_mode = "ended"
-            self.typewriter.start("【剧情结束】")
+                    
+            # 剧本执行完毕
+            if self.current_index >= len(self.script_data) and self.pause_mode is None and not self.inline_queue:
+                self.pause_mode = "ended"
+                self.typewriter.start("【剧情结束】")
+        except Exception:
+            errinfo = traceback.format_exc()
+            logger.error("剧情执行出错:\n{}".format(errinfo))
+            EngineClient.CreateErrorUI(errinfo)
             
     def _build_label_index(self):
         """构建标签索引"""

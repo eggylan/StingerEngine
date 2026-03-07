@@ -307,6 +307,7 @@ class CommandExecutor(object):
         image_name = cmd.get("image")
         if image_name and self.ui.bg_image:
             self.ui.bg_image.SetSprite(image_name)
+            self.current_bg = image_name
         return False
         
     def _handle_wait(self, cmd):
