@@ -13,11 +13,8 @@ class GameUI(ScreenNode):
     def __init__(self, namespace, name, param):
         ScreenNode.__init__(self, namespace, name, param)
         self.param = param
-        
-        # 加载章节脚本
-        entry = param.get("entry", "main")
-        self.script_data = self._load_script(entry)
-        
+        self.entry = param.get("entry", "main")
+
         # 状态变量
         self.current_index = 0
         self.pause_mode = None  # None | tap | menu | wait | ended
@@ -51,6 +48,9 @@ class GameUI(ScreenNode):
     def Create(self):
         """UI创建成功时调用"""
         try:
+            # 加载脚本
+            self.script_data = self._load_script(self.entry)
+
             # 初始化UI控件
             self.dialog_panel = self.GetBaseUIControl("/root_panel/dialog_panel")
             self.dialog_label = self.GetBaseUIControl("/root_panel/dialog_panel/dialog_label").asLabel()
@@ -175,13 +175,16 @@ class GameUI(ScreenNode):
             
     def Destroy(self):
         """UI销毁时调用"""
-        if self.typewriter:
-            self.typewriter.stop()
-        if self.menu_manager:
-            self.menu_manager._clear_choices()
-        if self.character_manager:
-            self.character_manager.destroy()
-        self.pause_mode = "ended"
+        try:
+            if self.typewriter:
+                self.typewriter.stop()
+            if self.menu_manager:
+                self.menu_manager._clear_choices()
+            if self.character_manager:
+                self.character_manager.destroy()
+            self.pause_mode = "ended"
+        except Exception:
+            pass
         
     def OnActive(self):
         """UI重新回到栈顶时调用"""
