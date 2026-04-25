@@ -73,7 +73,7 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - character_scale
 
 这意味着你已经可以组织出带有分支、条件解锁和基础演出效果的完整短篇剧情。
-详见：[脚本指令集.md](/docs/脚本指令集.md)
+详见：[脚本指令集](https://github.com/eggylan/StingerEngine/wiki/脚本指令集)
 
 ## 目录说明
 
