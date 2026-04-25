@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import mod.client.extraClientApi as clientApi
-from clientTools import logger, compGame, PlayBGM, PlayUISound, StopMusic
-from modconfig import *
+from StingerEngine.include.clientTools import PlayUISound, StopMusic, compGame, logger
+from StingerEngine.include.modconfig import CLIENT_NAME, MOD_NAME
 
 EngineClient = clientApi.GetSystem(MOD_NAME, CLIENT_NAME)
 class TypewriterEffect(object):
@@ -285,29 +285,27 @@ class CommandExecutor(object):
         return False
         
     def _handle_label(self, cmd):
+        label_name = cmd.get("name")
+        if label_name:
+            self.ui.current_label = label_name
         return False
         
     def _handle_text(self, cmd):
         speaker = cmd.get("speaker", "")
         content = cmd.get("content", "")
         speed = cmd.get("typewriter_speed")
-        if speaker == "":
-            self.ui.speaker_panel.SetVisible(False)
-        else:
-            self.ui.speaker_panel.SetVisible(True)
-            self.ui.speaker_label.SetText(speaker)
-        if not content == "":
-            self.ui.dialog_panel.SetVisible(True)
         text = "{}".format(content) 
+        self.ui._set_dialog_state(speaker, text, text != "", speaker != "")
         self.ui.typewriter.start(text, speed)
         self.ui.pause_mode = "tap"
+        self.ui._update_last_saveable_state()
         return True
 
     def _handle_bg(self, cmd):
         image_name = cmd.get("image")
         if image_name and self.ui.bg_image:
             self.ui.bg_image.SetSprite(image_name)
-            self.current_bg = image_name
+            self.ui.current_bg = image_name
         return False
         
     def _handle_wait(self, cmd):
@@ -398,7 +396,9 @@ class CommandExecutor(object):
         
     def _handle_fade_in(self, cmd):
         self.ui.pause_mode = "wait"
+        self.ui.fade_visible = True
         def _fade_callback():
+            self.ui.fade_visible = False
             self.ui.pause_mode = None
             self.ui.ExecuteUntilPause()
         duration = self._parse_float(cmd.get("duration", 1.0))
@@ -407,7 +407,9 @@ class CommandExecutor(object):
     
     def _handle_fade_out(self, cmd):
         self.ui.pause_mode = "wait"
+        self.ui.fade_visible = False
         def _fade_callback():
+            self.ui.fade_visible = True
             self.ui.pause_mode = None
             self.ui.ExecuteUntilPause()
         duration = self._parse_float(cmd.get("duration", 1.0))
@@ -496,8 +498,9 @@ class CommandExecutor(object):
         
     def _handle_menu(self, cmd):
         self.ui.pending_menu = cmd
-        self.ui.menu_manager.show_menu(cmd)
         self.ui.pause_mode = "menu"
+        self.ui.menu_manager.show_menu(cmd)
+        self.ui._update_last_saveable_state()
         return True
         
     def _handle_music(self, cmd):
@@ -529,7 +532,7 @@ class CommandExecutor(object):
         
     def _handle_return(self, cmd):
         self.ui.pause_mode = "ended"
-        clientApi.PopScreen()
+        self.ui.SetRemove()
         EngineClient.CreateMainInterfaceUI()
         return True
 
@@ -719,6 +722,7 @@ class CharacterManager(object):
         if fade_in > 0:
             self.ui.pause_mode = "wait"
             anim_name = self._next_anim_name("char_enter")
+            self.characters[char_id]["visible"] = True
 
             def _on_done():
                 if self.ui.pause_mode != "wait":
@@ -730,6 +734,7 @@ class CharacterManager(object):
             return True
         else:
             control.SetVisible(True)
+            self.characters[char_id]["visible"] = True
             return False
 
     def show(self, char_id, image, position="center"):
@@ -742,6 +747,7 @@ class CharacterManager(object):
             return False
 
         control.SetVisible(True)
+        self.characters[char_id]["visible"] = True
         return False
 
     def update(self, char_id, image=None, expression=None, transition=0):
@@ -755,6 +761,7 @@ class CharacterManager(object):
             return False
 
         if transition > 0 and image:
+            logger.info("更新角色 {} 的图片{} 表情{}，过渡动画时长 {} 秒".format(char_id, "更换为 "+image if image else "不变", "更换为 "+expression if expression else "不变", transition))
             self.ui.pause_mode = "wait"
             control = char_data["control"]
             half = transition / 2.0
@@ -766,9 +773,10 @@ class CharacterManager(object):
                     return
                 char_data["image_base"].asImage().SetSprite(image)
                 char_data["image"] = image
-                if expression:
+                if expression is not None:
                     char_data["image_emotion"].asImage().SetSprite(expression)
-                    char_data["image_emotion"].SetVisible(True)
+                    char_data["image_emotion"].SetVisible(bool(expression))
+                    char_data["expression"] = expression or None
 
                 def _on_in():
                     if self.ui.pause_mode != "wait":
@@ -781,12 +789,14 @@ class CharacterManager(object):
             self._fade_disappear(control, half, anim_out, callback=_on_out)
             return True
         else:
+            logger.info("直接更新角色 {} 的图片{} 表情{}".format(char_id, "更换为 "+image if image else "不变", "更换为 "+expression if expression else "不变"))
             if image:
                 char_data["image_base"].asImage().SetSprite(image)
                 char_data["image"] = image
-            if expression:
+            if expression is not None:
                 char_data["image_emotion"].asImage().SetSprite(expression)
-                char_data["image_emotion"].SetVisible(True)
+                char_data["image_emotion"].SetVisible(bool(expression))
+                char_data["expression"] = expression or None
             return False
 
     def play_anim(self, char_id, animdata, loop=False, speed=1.0):
@@ -920,7 +930,8 @@ class CharacterManager(object):
             return False
 
         start_rel = self._get_position_value(char_data["position"])
-        self.ui.pause_mode = "wait"
+        if pause_during_move:
+            self.ui.pause_mode = "wait"
         interval = 0.02   # ~50 FPS
         steps_total = max(1, int(duration / interval))
         state = {"step": 0, "timer": None}
@@ -941,11 +952,11 @@ class CharacterManager(object):
                 if state["timer"]:
                     compGame.CancelTimer(state["timer"])
                     state["timer"] = None
+                char_data["_move_timer"] = None
                 char_data["position"] = target_position
-                if self.ui.pause_mode != "wait":
-                    return
-                self.ui.pause_mode = None
-                self.ui.ExecuteUntilPause()
+                if pause_during_move and self.ui.pause_mode == "wait":
+                    self.ui.pause_mode = None
+                    self.ui.ExecuteUntilPause()
 
         state["timer"] = compGame.AddRepeatedTimer(interval, _tick)
         char_data["_move_timer"] = state["timer"]
@@ -968,6 +979,8 @@ class CharacterManager(object):
 
         if duration <= 0:
             self._set_size(image_base, end_rx, end_ry)
+            char_data["scale_x"] = scale_x
+            char_data["scale_y"] = scale_y
             return False
 
         cur_x = image_base.GetFullSize("x")
@@ -997,8 +1010,11 @@ class CharacterManager(object):
                 if state["timer"]:
                     compGame.CancelTimer(state["timer"])
                     state["timer"] = None
+                char_data["_scale_timer"] = None
                 if self.ui.pause_mode != "wait":
                     return
+                char_data["scale_x"] = scale_x
+                char_data["scale_y"] = scale_y
                 self.ui.pause_mode = None
                 self.ui.ExecuteUntilPause()
 
@@ -1011,6 +1027,71 @@ class CharacterManager(object):
         ids = list(self.characters.keys())
         for cid in ids:
             self._remove_character(cid)
+
+    def has_active_transition(self):
+        for char_data in self.characters.values():
+            if char_data.get("_move_timer") or char_data.get("_scale_timer"):
+                return True
+        return False
+
+    def export_state(self):
+        result = []
+        for char_id in sorted(self.characters.keys()):
+            char_data = self.characters.get(char_id, {})
+            image_base = char_data.get("image_base")
+            size_x = self._get_relative_size(image_base, "x")
+            size_y = self._get_relative_size(image_base, "y")
+            result.append({
+                "id": char_id,
+                "image": char_data.get("image"),
+                "expression": char_data.get("expression"),
+                "position": char_data.get("position", "center"),
+                "scale_x": char_data.get("scale_x", 1.0),
+                "scale_y": char_data.get("scale_y", 1.0),
+                "size_x": size_x,
+                "size_y": size_y,
+                "visible": bool(char_data.get("visible", True)),
+            })
+        return result
+
+    def restore_state(self, characters):
+        self.destroy()
+        if not isinstance(characters, list):
+            return
+        for item in characters:
+            if not isinstance(item, dict):
+                continue
+            char_id = item.get("id")
+            if not char_id:
+                continue
+            image = item.get("image")
+            position = item.get("position", "center")
+            control, image_base, image_emotion = self._create_character_control(char_id, image, position)
+            if not control:
+                continue
+            char_data = self.characters.get(char_id)
+            expression = item.get("expression")
+            if image_emotion and expression:
+                image_emotion.asImage().SetSprite(expression)
+                image_emotion.SetVisible(True)
+            if char_data:
+                char_data["expression"] = expression
+                char_data["scale_x"] = self._parse_float(item.get("scale_x", 1.0), 1.0)
+                char_data["scale_y"] = self._parse_float(item.get("scale_y", 1.0), 1.0)
+            size_x = item.get("size_x")
+            size_y = item.get("size_y")
+            if size_x is not None and size_y is not None:
+                self._set_size(image_base, self._parse_float(size_x, self.DEFAULT_SCALE_X), self._parse_float(size_y, self.DEFAULT_SCALE_Y))
+            elif char_data and (char_data["scale_x"] != 1.0 or char_data["scale_y"] != 1.0):
+                self._set_size(
+                    image_base,
+                    self.DEFAULT_SCALE_X * char_data["scale_x"],
+                    self.DEFAULT_SCALE_Y * char_data["scale_y"],
+                )
+            visible = bool(item.get("visible", True))
+            control.SetVisible(visible)
+            if char_data:
+                char_data["visible"] = visible
 
     # 以下是内部方法
     def _create_character_control(self, char_id, image, position):
@@ -1027,6 +1108,7 @@ class CharacterManager(object):
         if not control:
             logger.error("角色控件创建失败: {}".format(char_id))
             return None, None, None
+        control.SetVisible(False)
 
         image_base = control.GetChildByPath("/character_image_base")
         image_emotion = control.GetChildByPath("/character_image_base/character_image_emotion")
@@ -1048,6 +1130,10 @@ class CharacterManager(object):
             "image_emotion": image_emotion,
             "position": position,
             "image": image,
+            "expression": None,
+            "scale_x": 1.0,
+            "scale_y": 1.0,
+            "visible": False,
         }
         return control, image_base, image_emotion
 
@@ -1076,6 +1162,25 @@ class CharacterManager(object):
         """设置控件相对尺寸"""
         control.SetFullSize("x", {"followType": "parent", "relativeValue": rel_x, "absoluteValue": 0})
         control.SetFullSize("y", {"followType": "parent", "relativeValue": rel_y, "absoluteValue": 0})
+
+    @staticmethod
+    def _get_relative_size(control, axis):
+        if not control:
+            return None
+        try:
+            size = control.GetFullSize(axis)
+            if isinstance(size, dict):
+                return size.get("relativeValue")
+        except Exception:
+            return None
+        return None
+
+    @staticmethod
+    def _parse_float(value, default_value=0.0):
+        try:
+            return float(value)
+        except Exception:
+            return default_value
 
     def _remove_character(self, char_id):
         """移除角色控件并取消关联定时器"""
@@ -1153,9 +1258,6 @@ class CharacterManager(object):
 class MenuManager(object):
     """管理可点击的分支选择按钮"""
 
-    BUTTON_HEIGHT = 23   # choice_button_panel模板高度
-    DIVIDER_HEIGHT = 4   # choice_divider模板高度（按钮间分隔）
-
     def __init__(self, ui_instance):
         self.ui = ui_instance
         self.menu_panel = ui_instance.menu_panel
@@ -1175,9 +1277,7 @@ class MenuManager(object):
 
         # 显示标题到对话框（如有）
         if title:
-            self.ui.speaker_panel.SetVisible(False)
-            self.ui.dialog_panel.SetVisible(True)
-            self.ui.dialog_label.SetText(title)
+            self.ui._set_dialog_state("", title, True, False)
 
         # 隐藏全屏触摸按钮，让选项按钮可以接收点击事件
         self.ui.touch_button.SetVisible(False)
@@ -1185,11 +1285,8 @@ class MenuManager(object):
         # 清理旧按钮
         self._clear_choices()
 
-        # 计算面板高度并调整大小，使 stack_panel 居中显示
-        n = len(choices)
-        total_height = n * self.BUTTON_HEIGHT + max(0, n - 1) * self.DIVIDER_HEIGHT
         current_size = self.menu_panel.GetSize()
-        self.menu_panel.SetSize((current_size[0], total_height))
+        total_height = 0
 
         # 逐项创建按钮，按钮之间插入分隔
         for i, choice in enumerate(choices):
@@ -1200,10 +1297,14 @@ class MenuManager(object):
                     self.menu_panel
                 )
                 self.choice_controls.append(divider)
+                total_height += self._get_control_height(divider)
 
             choice_text = choice.get("text", "选项{}".format(i + 1))
             button_panel = self._create_choice_button(i, choice_text)
             self.choice_controls.append(button_panel)
+            total_height += self._get_control_height(button_panel)
+
+        self.menu_panel.SetSize((current_size[0], total_height or current_size[1]))
 
         # 显示菜单面板
         self.menu_panel.SetVisible(True)
@@ -1237,6 +1338,16 @@ class MenuManager(object):
 
         button.SetButtonTouchUpCallback(on_choice_click)
         return button_panel
+
+    @staticmethod
+    def _get_control_height(control):
+        size = control.GetSize()
+        if not size or len(size) < 2:
+            return 0
+        try:
+            return int(round(float(size[1])))
+        except Exception:
+            return 0
 
     def _on_choice_selected(self, choice_index):
         """选项被点击后的处理：隐藏菜单 -> 设置变量 -> 跳转标签 -> 继续剧本"""

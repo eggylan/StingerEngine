@@ -16,3 +16,14 @@ GAME_UI_DEF = "GameUI.GameUI"
 ERROR_UI_NAME = "ErrorUI"
 ERROR_UI_CLSPATH = "StingerEngine.uiScript.ErrorUI.ErrorUI"
 ERROR_UI_DEF = "ErrorUI.ErrorUI"
+
+UI_PUSH_DELAY = 0.05
+SCRIPT_EXECUTION_STEP_LIMIT = 1024
+
+SAVE_SCHEMA_VERSION = 1
+SAVE_KEY_PREFIX = "stinger_save"
+SAVE_SLOT_1_ID = "slot_1"
+SAVE_SLOT_2_ID = "slot_2"
+SAVE_SLOT_3_ID = "slot_3"
+SAVE_SLOT_AUTO_ID = "slot_auto"
+SAVE_SLOT_QUICK_ID = "slot_quick"

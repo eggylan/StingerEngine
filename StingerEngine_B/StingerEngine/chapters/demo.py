@@ -1,162 +1,107 @@
 # -*- coding: utf-8 -*-
-# 剧本：雨后的咖啡香
-# 演示了基本的剧情流程、分支选择、变量标记、条件判断以及好感度解锁隐藏选项
 
 script_data = [
-    # === 开场 ===
-    {"type": "var", "variable": "favorability", "operation": "set", "value": 0},
-    {"type": "bg", "image": "textures/modTextures/demo/bg_cafe_rain"},
-    {"type": "fade_in", "duration": 2.0},
-    {"type": "music", "file": "demo.bgm.relax", "action": "play"},
+    # ---------------- 变量初始化 ----------------
+    {"type": "var", "variable": "alex_affection", "operation": "set", "value": 0},
+    {"type": "var", "variable": "has_pickaxe", "operation": "set", "value": False},
 
-    {"type": "text", "speaker": "", "content": "窗外的雨淅淅沥沥地下着，已经是下午三点了。"},
-    {"type": "text", "speaker": "", "content": "这家名为'时光角落'的咖啡店，今天格外安静。"},
-
-    # 主角独白
-    {"type": "text", "speaker": "我", "content": "（呼……终于可以把这周的工作告一段落了。）"},
-    {"type": "text", "speaker": "我", "content": "（这种天气，果然还是热咖啡最配啊。）"},
-
-    # === 角色登场 ===
+    # ---------------- 场景一：屋子 ----------------
+    {"type": "bg", "image": "textures/modTextures/demo/bg_house_inside"},
+    {"type": "music", "file": "demo.bgm.morning_village", "action": "play"},
+    {"type": "fade_in", "duration": 1.5},
+    
+    {"type": "wait", "duration": 0.5},
+    {"type": "sfx", "file": "demo.sfx.door_knock", "loop": False},
+    {"type": "text", "speaker": "爱丽克丝", "content": "史蒂夫！快醒醒！太阳都升到头顶了！"},
+    {"type": "text", "speaker": "史蒂夫", "content": "唔……苦力怕都还没下班呢，再让我睡五分钟……"},
+    
     {"type": "sfx", "file": "demo.sfx.door_open", "loop": False},
-    {"type": "wait", "duration": 0.5},
+    {"type": "character_enter", "id": "alex", "image": "char_alex_angry", "position": "center", "fade_in": 0.3},
+    {"type": "character_play_anim", "id": "alex", "animdata": {"anim_type": "offset", "duration": 0.1, "from": [0,0], "to": [0,-10]}, "loop": False},
+    {"type": "text", "speaker": "爱丽克丝", "content": "你昨天答应过我要一起去下层矿洞挖钻石的！你再不起来，我就把你箱子里的熟猪排全吃光！"},
 
-    # 有请主人公入场
-    {"type": "character_enter", "id": "yao", "image": "textures/modTextures/demo/char_yao_normal", "position": "left", "fade_in": 0.5},
-    {"type": "text", "speaker": "？？？", "content": "那个……请问！"},
-    {"type": "wait", "duration": 0.5},
-    {"type": "text", "speaker": "我", "content": "（被突然的声音吓了一跳。）"},
-
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_shocked"},
-    {"type": "text", "speaker": "？？？", "content": "啊，抱歉抱歉，我太着急了。"},
-    {"type": "text", "speaker": "我", "content": "没关系，请问有什么事吗？"},
-
-    {"type": "character_move", "id": "yao", "position": "center","pause": False, "duration": 0.3},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_worried"},
-    {"type": "text", "speaker": "少女", "content": "那个……我刚才坐在这个位置，好像把一本笔记本忘在这里了。"},
-    {"type": "text", "speaker": "少女", "content": "是黑色的，上面贴着一个猫咪贴纸……"},
-
-    # 变量标记
-    {"type": "var", "variable": "found_notebook", "operation": "set", "value": True},
-    {"type": "text", "speaker": "我", "content": "（我低头看了看桌角，确实有一本黑色的笔记本。）"},
- 
-    # === 第一个分支选择 ===
+    # ---------------- 分支选项 ----------------
     {
         "type": "menu",
-        "title": "我该怎么回应她？",
+        "title": "要怎么回应她？",
         "choices": [
-            {"label": "route_polite", "text": "温和地递给她"},
-            {"label": "route_tease", "text": "稍微逗逗她"}
+            {"label": "route_tease", "text": "别动我的猪排！我起还不行吗！"},
+            {"label": "route_gentle", "text": "（揉揉眼睛）早安，爱丽克丝。今天你真有精神。"}
         ]
     },
 
-    # === 分支 A：温和路线 ===
-    {"type": "label", "name": "route_polite"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_relieved"},
-    {"type": "text", "speaker": "我", "content": "是这个吗？我正想问是谁落下的。"},
-    # {"type": "action", "name": "play_animation", "animdata": },
-    {"type": "text", "speaker": "少女", "content": "太好了！真的是它！谢谢你！"},
-    {"type": "var", "variable": "favorability", "operation": "add", "value": 2},
-    {"type": "jump", "target": "common_scene"},
-
-    # === 分支 B：调侃路线 ===
+    # 分支A：欢喜冤家
     {"type": "label", "name": "route_tease"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_normal"},
-    {"type": "text", "speaker": "我", "content": "笔记本啊……描述得这么详细，里面有什么秘密吗？"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_blush"},
-    {"type": "text", "speaker": "少女", "content": "啊！没、没什么秘密！只是画稿而已……"},
-    {"type": "text", "speaker": "我", "content": "（看着她慌张的样子，我笑了笑，把本子递过去。）"},
-    {"type": "text", "speaker": "我", "content": "开玩笑的，给你。"},
-    {"type": "jump", "target": "common_scene"},
+    {"type": "character_update", "id": "alex", "image": "char_alex_normal", "transition": 0.2},
+    {"type": "text", "speaker": "爱丽克丝", "content": "哼，就知道这招对你最管用。"},
+    {"type": "jump", "target": "pre_mining"},
 
-    # === 公共场景 ===
-    {"type": "label", "name": "common_scene"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_smile"},
-    {"type": "text", "speaker": "少女", "content": "真的帮大忙了。我叫苏瑶，是附近美院的学生。"},
-    {"type": "text", "speaker": "我", "content": "幸会，我是这里的常客。"},
+    # 分支B：直球出击（加好感度）
+    {"type": "label", "name": "route_gentle"},
+    {"type": "var", "variable": "alex_affection", "operation": "add", "value": 1},
+    {"type": "character_update", "id": "alex", "image": "char_alex_blush", "transition": 0.3},
+    {"type": "text", "speaker": "爱丽克丝", "content": "哎？突然说、说什么呢……快点换衣服啦，笨蛋。"},
+    {"type": "character_move", "id": "alex", "position": "center_right", "duration": 0.5},
+    {"type": "jump", "target": "pre_mining"},
 
-    {"type": "music", "file": "demo.bgm.emotion", "action": "change", "fade": 2.0},
-    {"type": "text", "speaker": "苏瑶", "content": "为了表示感谢，这杯咖啡我请你好吗？"},
+    # ---------------- 准备下矿 ----------------
+    {"type": "label", "name": "pre_mining"},
+    {"type": "character_update", "id": "alex", "image": "char_alex_smile", "transition": 0.2},
+    {"type": "text", "speaker": "爱丽克丝", "content": "烤土豆我放在你熔炉里了，记得吃。我先去矿洞入口把火把和水桶准备好。"},
+    {"type": "text", "speaker": "爱丽克丝", "content": "你赶紧去储物箱里拿一把铁镐跟上来。别再用木镐挖煤了！"},
+    
+    {"type": "character_hide", "id": "alex", "fade_out": 0.5},
+	{"type": "text", "speaker": "史蒂夫", "content": "（爱丽克斯总是这样风风火火的……但不得不说，烤土豆真香。）"},
+    {"type": "text", "speaker": "史蒂夫", "content": "好吧，先把铁镐找出来再去和她汇合吧。应该就在房间里的箱子里……"},
 
-    # === 第二个分支选择：好感度影响菜单选项 ===
+    # ---------------- 返回游戏寻找物品 ----------------
+    # 隐藏UI让玩家在MC里开箱子找铁镐
+	# 引擎实现尚未完工，暂时跳过
+    # {
+    #     "type": "hide_ui_return_game",
+    #     "wait_for_event": "",
+    #     "event_data": "",
+    #     "hint": "请打开周围的箱子，将一把【铁镐】放入背包"
+    # },
+
+    # （当玩家拿到铁镐后，恢复UI，从这里继续执行）
+    {"type": "var", "variable": "has_pickaxe", "operation": "set", "value": True},
+    {"type": "text", "speaker": "史蒂夫", "content": "太好了，耐久还是满的。这下不会挨骂了。"},
+    {"type": "text", "speaker": "史蒂夫", "content": "出发去矿洞入口吧！"},
+    {"type": "fade_out", "duration": 1.0},
+
+    # ---------------- 场景二：矿洞入口 ----------------
+    {"type": "music", "action": "stop", "fade": 1.0},
+    {"type": "bg", "image": "textures/modTextures/demo/bg_cave_entrance"},
+    {"type": "music", "file": "demo.bgm.cave_ambient", "action": "play"},
+    {"type": "fade_in", "duration": 1.0},
+    
+    {"type": "character_show", "id": "alex", "image": "char_alex_normal", "position": "center"},
+    {"type": "text", "speaker": "爱丽克丝", "content": "慢死了！你要是再晚来五分钟，我就一个人下去了。"},
+	{"type": "text", "speaker": "爱丽克丝", "content": "入口的僵尸我都清理干净了。铁镐带了吧？"},
+    {"type": "text", "speaker": "史蒂夫", "content": "抱歉抱歉，顺手收了一下田里的几颗小麦。看，铁镐带了。"},
+
+    # ---------------- 根据好感度触发不同剧情 ----------------
     {
         "type": "condition",
-        "condition": "favorability >= 1",
+        "condition": "alex_affection >= 1",
         "true_commands": [
-            {
-                "type": "menu",
-                "title": "我要接受吗？",
-                "choices": [
-                    {"label": "end_good_high", "text": "接受邀请，交换联系方式"},
-                    {"label": "end_normal", "text": "婉拒，只接受咖啡"},
-                    {"label": "end_special", "text": "邀请她一起坐（选项已解锁）"}
-                ]
-            }
+            {"type": "character_update", "id": "alex", "image": "char_alex_blush", "transition": 0.3},
+            {"type": "text", "speaker": "爱丽克丝", "content": "给……这个拿着。"},
+            {"type": "text", "speaker": "史蒂夫", "content": "这是……刚刚烤好的熟猪排？你没吃掉啊？"},
+            {"type": "text", "speaker": "爱丽克丝", "content": "下矿很消耗体力的嘛……我只是顺便多烤了一块而已，才不是特意给你留的！走啦！"}
         ],
         "false_commands": [
-            {
-                "type": "menu",
-                "title": "我要接受吗？",
-                "choices": [
-                    {"label": "end_good_low", "text": "接受邀请"},
-                    {"label": "end_normal", "text": "婉拒，只接受咖啡"}
-                ]
-            }
+            {"type": "character_update", "id": "alex", "image": "char_alex_smile", "transition": 0.2},
+            {"type": "text", "speaker": "爱丽克丝", "content": "很好！今天不挖到一组铁矿和半组钻石，我们就不回去！跟紧我哦！"}
         ]
     },
 
-    # === 结局：好感足够，接受邀请（Good End） ===
-    {"type": "label", "name": "end_good_high"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_happy"},
-    {"type": "text", "speaker": "苏瑶", "content": "太好了！那……可以加个好友吗？下次我请你吃蛋糕！"},
-    {"type": "text", "speaker": "我", "content": "好啊，求之不得。"},
-    {"type": "sfx", "file": "demo.sfx.bell_click", "loop": False},
-    {"type": "character_clear", "fade_out": 0.5},
-    {"type": "text", "speaker": "", "content": "雨不知什么时候停了。"},
-    {"type": "text", "speaker": "", "content": "空气中弥漫着咖啡和泥土的清香。"},
-    {"type": "text", "speaker": "系统", "content": "【结局：雨后的约定】"},
-    {"type": "jump", "target": "the_end"},
+    {"type": "character_hide", "id": "alex", "fade_out": 0.5},
+    {"type": "text", "speaker": "史蒂夫", "content": "（看来今天也会是充满冒险的一天呢。）"},
 
-    # === 结局：好感不足，接受邀请（普通结局） ===
-    {"type": "label", "name": "end_good_low"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_smile"},
-    {"type": "text", "speaker": "苏瑶", "content": "那我去点单，你稍等一下。"},
-    {"type": "text", "speaker": "我", "content": "嗯，麻烦你了。"},
-    {"type": "text", "speaker": "", "content": "她端来咖啡，简单聊了几句天气，便回到自己的座位。"},
-    {"type": "text", "speaker": "", "content": "虽然没能深交，但这次偶遇也算温暖。"},
-    {"type": "character_clear", "fade_out": 0.5},
-    {"type": "text", "speaker": "系统", "content": "【结局：淡淡的咖啡香】"},
-    {"type": "jump", "target": "the_end"},
-
-    # === 结局：隐藏选项（特殊结局） ===
-    {"type": "label", "name": "end_special"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_happy"},
-    {"type": "text", "speaker": "我", "content": "不如一起坐吧，反正店里人不多，可以聊聊天。"},
-    {"type": "text", "speaker": "苏瑶", "content": "诶？可以吗？太好了！"},
-    {"type": "text", "speaker": "", "content": "她高兴地坐到对面，拿出素描本翻给我看她的画作。"},
-    {"type": "text", "speaker": "苏瑶", "content": "其实我经常来这里找灵感，今天的雨景特别美。"},
-    {"type": "text", "speaker": "我", "content": "难怪你的画里总有一种宁静的感觉。"},
-    {"type": "text", "speaker": "", "content": "我们聊了很久，从绘画到音乐，从咖啡到旅行。"},
-    {"type": "text", "speaker": "苏瑶", "content": "那个……如果不介意，我想为你画一张速写，当作谢礼。"},
-    {"type": "text", "speaker": "我", "content": "我的荣幸。"},
-    {"type": "character_clear", "fade_out": 0.5},
-    {"type": "show_image", "image": "img_cg_special", "fade": 1.5},
-    {"type": "text", "speaker": "系统", "content": "【结局：雨中的素描】"},
-    {"type": "jump", "target": "the_end"},
-
-    # === 结局 B：婉拒（Normal End） ===
-    {"type": "label", "name": "end_normal"},
-    {"type": "character_update", "id": "yao", "image": "textures/modTextures/demo/char_yao_slight_sad"},
-    {"type": "text", "speaker": "我", "content": "咖啡就不用啦，举手之劳而已。"},
-    {"type": "text", "speaker": "苏瑶", "content": "这样啊……好吧，那真的谢谢你了。"},
-    {"type": "character_clear", "fade_out": 0.5},
-    {"type": "text", "speaker": "", "content": "她向我挥挥手，转身走进了雨幕中。"},
-    {"type": "text", "speaker": "", "content": "虽然有些遗憾，但这也是不错的午后插曲。"},
-    {"type": "text", "speaker": "系统", "content": "【结局：擦肩而过】"},
-    {"type": "jump", "target": "the_end"},
-
-    # === 结束 ===
-    {"type": "label", "name": "the_end"},
-    {"type": "music", "action": "stop", "fade": 2.0},
-    {"type": "fade_out", "duration": 3.0},
+    # ---------------- 结束 ----------------
+    {"type": "fade_out", "duration": 1.5},
+    {"type": "music", "action": "stop", "fade": 1.5},
     {"type": "return_to_title"}
 ]

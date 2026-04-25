@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 import mod.client.extraClientApi as clientApi
 import traceback
-from ..include.modconfig import *
-from ..include.clientTools import logger, compGame, PlayBGM, PlayUISound, StopMusic
-from ..include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
+from StingerEngine.include.clientTools import PlayUISound, StopMusic, logger
+from StingerEngine.include.modconfig import CLIENT_NAME, MOD_NAME, SCRIPT_EXECUTION_STEP_LIMIT
+from StingerEngine.include.saveData import (
+    CloneSerializableData,
+    CreateDefaultDialogState,
+    CreateDefaultVisualState,
+    IsValidSaveSlotId,
+    SAVE_SCHEMA_VERSION,
+    SAVEABLE_PAUSE_MODES,
+    ValidateSaveSnapshot,
+)
+from StingerEngine.include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
 ViewBinder = clientApi.GetViewBinderCls()
 ViewRequest = clientApi.GetViewViewRequestCls()
 ScreenNode = clientApi.GetScreenNodeCls()
@@ -14,24 +23,267 @@ class GameUI(ScreenNode):
         ScreenNode.__init__(self, namespace, name, param)
         self.param = param
         self.entry = param.get("entry", "main")
+        self.script_data = []
 
         # 状态变量
         self.current_index = 0
         self.pause_mode = None  # None | tap | menu | wait | ended
         self.variables = {}
         self.label_index = {}
+        self.current_label = None
+        self.current_dialog = CreateDefaultDialogState()
+        self.last_saveable_state = None
         self.pending_menu = None
         self.current_bg = None
         self.current_music = None
         self.current_cg = {"0": None, "1": None}
         self.cg_front = "0"  # 当前前景CG槽位，"0" 或 "1"
+        self.fade_visible = False
         self.inline_queue = []  # 内联命令队列（condition 等暂停恢复用）
+        self.world_context = {}
 
         # 组件
         self.typewriter = None
         self.executor = None
+        self.character_manager = None
+        self.menu_manager = None
+        self.dialog_panel = None
         self.dialog_label = None 
+        self.speaker_panel = None
+        self.speaker_label = None
+        self.stage_panel = None
+        self.menu_panel = None
         self.touch_button = None
+        self.bg_image = None
+        self.cg_panel = None
+        self.cg_image_0_base = None
+        self.cg_image_1_base = None
+        self.fade_overlay = None
+
+    def _show_error_ui(self, errinfo):
+        try:
+            self.pause_mode = "ended"
+            self.SetRemove()
+        except Exception:
+            pass
+        EngineClient.CreateErrorUI(errinfo)
+
+    def _set_dialog_state(self, speaker, content, dialog_visible=True, speaker_visible=True):
+        speaker = "" if speaker is None else "{}".format(speaker)
+        content = "" if content is None else "{}".format(content)
+        dialog_visible = bool(dialog_visible)
+        speaker_visible = bool(speaker_visible and speaker)
+
+        self.current_dialog = {
+            "speaker": speaker,
+            "content": content,
+            "dialog_visible": dialog_visible,
+            "speaker_visible": speaker_visible,
+        }
+
+        if self.dialog_panel:
+            self.dialog_panel.SetVisible(dialog_visible)
+        if self.dialog_label:
+            self.dialog_label.SetText(content)
+        if self.speaker_panel:
+            self.speaker_panel.SetVisible(speaker_visible)
+        if self.speaker_label:
+            self.speaker_label.SetText(speaker)
+
+    def _update_last_saveable_state(self):
+        if self.pause_mode not in SAVEABLE_PAUSE_MODES:
+            return
+        self.last_saveable_state = {
+            "entry": self.entry,
+            "current_index": self.current_index,
+            "pause_mode": self.pause_mode,
+            "current_label": self.current_label,
+        }
+
+    def CanSaveNow(self):
+        if self.pause_mode not in SAVEABLE_PAUSE_MODES:
+            return False
+        if self.character_manager and self.character_manager.has_active_transition():
+            return False
+        return True
+
+    def BuildSaveSnapshot(self, slotId=None):
+        if slotId is not None and not IsValidSaveSlotId(slotId):
+            raise ValueError("无效的存档槽位: {}".format(slotId))
+        if not self.CanSaveNow():
+            raise ValueError("当前状态不可存档: {}".format(self.pause_mode))
+
+        if self.typewriter and self.typewriter.is_active:
+            self.typewriter.finish()
+
+        dialog = CloneSerializableData(self.current_dialog, CreateDefaultDialogState())
+        pending_menu = CloneSerializableData(self.pending_menu, None)
+        inline_queue = CloneSerializableData(self.inline_queue, [])
+        variables = CloneSerializableData(self.variables, {})
+        world_context = CloneSerializableData(self.world_context, {})
+        characters = []
+        if self.character_manager:
+            characters = self.character_manager.export_state()
+
+        snapshot = {
+            "schema_version": SAVE_SCHEMA_VERSION,
+            "slot_id": slotId,
+            "entry": self.entry,
+            "current_index": int(self.current_index),
+            "pause_mode": self.pause_mode,
+            "current_label": self.current_label,
+            "variables": variables,
+            "dialog": dialog,
+            "pending_menu": pending_menu,
+            "inline_queue": inline_queue,
+            "visual": {
+                "background": self.current_bg,
+                "music": self.current_music,
+                "cg_front": self.cg_front,
+                "cg": CloneSerializableData(self.current_cg, {"0": None, "1": None}),
+                "fade_visible": bool(self.fade_visible),
+            },
+            "characters": characters,
+            "world_context": world_context,
+        }
+
+        valid, error_code = ValidateSaveSnapshot(snapshot)
+        if not valid:
+            raise ValueError("存档快照校验失败: {}".format(error_code))
+
+        self._update_last_saveable_state()
+        return snapshot
+
+    def ApplySaveSnapshot(self, snapshot):
+        snapshot = CloneSerializableData(snapshot, None)
+        valid, error_code = ValidateSaveSnapshot(snapshot)
+        if not valid:
+            raise ValueError("存档快照校验失败: {}".format(error_code))
+
+        self.ResetRuntimeState()
+        self.entry = snapshot.get("entry", "main")
+        self.script_data = self._load_script(self.entry)
+        self._build_label_index()
+
+        visual = snapshot.get("visual") or CreateDefaultVisualState()
+        self._apply_visual_state(visual)
+
+        self.variables = CloneSerializableData(snapshot.get("variables", {}), {})
+        self.world_context = CloneSerializableData(snapshot.get("world_context", {}), {})
+
+        if self.character_manager:
+            self.character_manager.restore_state(snapshot.get("characters", []))
+
+        dialog = snapshot.get("dialog") or CreateDefaultDialogState()
+        self._set_dialog_state(
+            dialog.get("speaker", ""),
+            dialog.get("content", ""),
+            dialog.get("dialog_visible", False),
+            dialog.get("speaker_visible", False),
+        )
+
+        self.pending_menu = CloneSerializableData(snapshot.get("pending_menu"), None)
+        self.pause_mode = snapshot.get("pause_mode")
+        if self.pause_mode == "menu" and self.pending_menu and self.menu_manager:
+            self.menu_manager.show_menu(self.pending_menu)
+            self._set_dialog_state(
+                dialog.get("speaker", ""),
+                dialog.get("content", ""),
+                dialog.get("dialog_visible", False),
+                dialog.get("speaker_visible", False),
+            )
+        elif self.touch_button:
+            self.touch_button.SetVisible(True)
+
+        self.current_index = int(snapshot.get("current_index", 0))
+        self.inline_queue = CloneSerializableData(snapshot.get("inline_queue", []), [])
+        self.current_label = snapshot.get("current_label")
+        self._update_last_saveable_state()
+
+    def ResetRuntimeState(self):
+        if self.typewriter:
+            self.typewriter.stop()
+        if self.menu_manager:
+            self.menu_manager.hide_menu()
+        if self.character_manager:
+            self.character_manager.destroy()
+        if self.current_music:
+            try:
+                StopMusic(self.current_music, 0.0)
+            except Exception:
+                pass
+
+        self.current_index = 0
+        self.pause_mode = None
+        self.variables = {}
+        self.current_label = None
+        self.current_dialog = CreateDefaultDialogState()
+        self.last_saveable_state = None
+        self.pending_menu = None
+        self.current_bg = None
+        self.current_music = None
+        self.current_cg = {"0": None, "1": None}
+        self.cg_front = "0"
+        self.fade_visible = False
+        self.inline_queue = []
+        self.world_context = {}
+
+        if self.dialog_panel:
+            self.dialog_panel.SetVisible(False)
+        if self.dialog_label:
+            self.dialog_label.SetText("")
+        if self.speaker_panel:
+            self.speaker_panel.SetVisible(False)
+        if self.speaker_label:
+            self.speaker_label.SetText("")
+        if self.touch_button:
+            self.touch_button.SetVisible(True)
+        if self.bg_image:
+            self.bg_image.SetSprite("textures/modTextures/default/black")
+        if self.cg_panel:
+            self.cg_panel.SetVisible(False)
+        if self.cg_image_0_base:
+            self.cg_image_0_base.SetVisible(False)
+        if self.cg_image_1_base:
+            self.cg_image_1_base.SetVisible(False)
+        if self.fade_overlay:
+            self.fade_overlay.SetVisible(False)
+
+    def _apply_visual_state(self, visual):
+        background = visual.get("background")
+        if background and self.bg_image:
+            self.bg_image.SetSprite(background)
+        self.current_bg = background
+
+        music = visual.get("music")
+        if music:
+            PlayUISound(music, loop=True)
+        self.current_music = music
+
+        self._apply_cg_state(visual.get("cg") or {"0": None, "1": None}, visual.get("cg_front", "0"))
+
+        self.fade_visible = bool(visual.get("fade_visible", False))
+        if self.fade_overlay:
+            self.fade_overlay.SetVisible(self.fade_visible)
+
+    def _apply_cg_state(self, cg_state, cg_front):
+        self.current_cg = {
+            "0": cg_state.get("0"),
+            "1": cg_state.get("1"),
+        }
+        self.cg_front = cg_front if cg_front in ("0", "1") else "0"
+
+        has_cg = False
+        for slot, control in (("0", self.cg_image_0_base), ("1", self.cg_image_1_base)):
+            image = self.current_cg.get(slot)
+            if image and control:
+                control.asImage().SetSprite(image)
+                control.SetVisible(True)
+                has_cg = True
+            elif control:
+                control.SetVisible(False)
+        if self.cg_panel:
+            self.cg_panel.SetVisible(has_cg)
         
     def _load_script(self, entry):
         """加载章节脚本"""
@@ -81,7 +333,7 @@ class GameUI(ScreenNode):
         except Exception:
             errinfo = traceback.format_exc()
             logger.error("GameUI Create出错:\n{}".format(errinfo))
-            EngineClient.CreateErrorUI(errinfo)
+            self._show_error_ui(errinfo)
         
     def OnTouchButton(self, args):
         """触摸按钮回调"""
@@ -100,8 +352,18 @@ class GameUI(ScreenNode):
         """执行剧本直到遇到暂停"""
         try:
             steps = 0
+            max_steps = SCRIPT_EXECUTION_STEP_LIMIT
             
             while self.pause_mode is None:
+                if steps >= max_steps:
+                    raise RuntimeError(
+                        "剧情执行超过最大连续步数 {}，可能存在无暂停死循环。entry={}, current_index={}".format(
+                            max_steps,
+                            self.entry,
+                            self.current_index,
+                        )
+                    )
+
                 # 优先执行内联命令队列（condition 内暂停后的剩余命令）
                 if self.inline_queue:
                     command = self.inline_queue.pop(0)
@@ -128,7 +390,7 @@ class GameUI(ScreenNode):
         except Exception:
             errinfo = traceback.format_exc()
             logger.error("剧情执行出错:\n{}".format(errinfo))
-            EngineClient.CreateErrorUI(errinfo)
+            self._show_error_ui(errinfo)
             
     def _build_label_index(self):
         """构建标签索引"""

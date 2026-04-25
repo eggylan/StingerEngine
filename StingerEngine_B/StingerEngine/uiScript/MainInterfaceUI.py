@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+import traceback
 import mod.client.extraClientApi as clientApi
-from ..include.modconfig import *
-from ..include.clientTools import compCustomAudio
+from StingerEngine.include.modconfig import CLIENT_NAME, MOD_NAME
 ViewBinder = clientApi.GetViewBinderCls()
 ViewRequest = clientApi.GetViewViewRequestCls()
 ScreenNode = clientApi.GetScreenNodeCls()
@@ -28,19 +28,20 @@ class MainInterfaceUI(ScreenNode):
 		raiseError_button.SetButtonTouchUpCallback(self.OnRaiseError)
 
 	def OnStartNewGame(self, args):
-		clientApi.PopScreen()
+		self.SetRemove()
 		EngineClient.CreateGameUI("main")
 	
 	def OnExit(self, args):
+		self.SetRemove()
 		EngineClient.ForceDisconnect()
 
 	def OnRaiseError(self, args):
 		# 测试用
-		import traceback
 		try:
 			raise Exception("这是一个测试错误")
 		except Exception as e:
 			errinfo = traceback.format_exc()
+		self.SetRemove()
 		EngineClient.CreateErrorUI(errinfo)
 
 	def Destroy(self):

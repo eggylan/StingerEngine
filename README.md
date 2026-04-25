@@ -11,7 +11,7 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 角色立绘进场、切换、移动、隐藏
 - BGM / SFX 播放控制
 - 菜单分支、变量系统、条件判断、标签跳转
-- 一个完整的 demo 剧本《雨后的咖啡香》
+- 一个完整的 demo 剧本，演示主界面进入剧情、分支选择和返回标题流程
 
 ## ⚠️⚠️ Alpha 阶段警告
 
@@ -108,14 +108,14 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 章节入口：StingerEngine_B/StingerEngine/chapters/main.py
 - 示例剧本：StingerEngine_B/StingerEngine/chapters/demo.py
 
-示例剧本《雨后的咖啡香》演示了这些能力：
+当前示例剧本围绕“史蒂夫与爱丽克丝出发下矿前的互动”展开，演示了这些能力：
 
 - 对话推进
 - 角色登场与表情切换
 - BGM 和音效播放
 - 分支选择
 - 好感度变量
-- 条件分支解锁隐藏结局
+- 条件分支触发不同对话
 - 结局跳转与返回标题
 
 ## 快速开始
@@ -137,7 +137,7 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 加载主界面
 - 点击开始
 - 进入章节 main
-- main 再导入 demo.script_data
+- main 再转发 demo 的 script_data
 
 如果你没有修改入口逻辑，直接运行后就会进入演示流程。
 
@@ -167,7 +167,7 @@ EngineClient.CreateGameUI("your_chapter_name")
 当前主入口文件为 StingerEngine_B/StingerEngine/chapters/main.py，它默认执行：
 
 ```python
-from demo import script_data as script_data
+from StingerEngine.chapters.demo import script_data
 ```
 
 你可以将它改成自己的章节模块，或者保留 main.py 作为统一转发入口。
@@ -179,7 +179,7 @@ from demo import script_data as script_data
 ```python
 script_data = [
 		{"type": "var", "variable": "favorability", "operation": "set", "value": 0},
-		{"type": "bg", "image": "textures/modTextures/demo/bg_cafe_rain"},
+		{"type": "bg", "image": "textures/modTextures/demo/bg_house_inside"},
 		{"type": "text", "speaker": "我", "content": "这是一句对白。"},
 		{
 				"type": "menu",
@@ -228,8 +228,8 @@ script_data = [
 
 例如：
 
-- 背景图：textures/modTextures/demo/bg_cafe_rain
-- 立绘：textures/modTextures/demo/char_yao_normal
+- 背景图：textures/modTextures/demo/bg_house_inside
+- 立绘命名建议：char_<role>_<state>
 - BGM：demo.bgm.relax
 - 音效：demo.sfx.door_open
 

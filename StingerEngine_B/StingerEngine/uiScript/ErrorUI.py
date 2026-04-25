@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import mod.client.extraClientApi as clientApi
-from ..include.modconfig import *
+from StingerEngine.include.modconfig import CLIENT_NAME, MOD_NAME
 ViewBinder = clientApi.GetViewBinderCls()
 ViewRequest = clientApi.GetViewViewRequestCls()
 ScreenNode = clientApi.GetScreenNodeCls()
@@ -22,7 +22,7 @@ class ErrorUI(ScreenNode):
 		exit_button.SetButtonTouchUpCallback(self.OnExit)
 
 	def OnExit(self, args):
-		clientApi.PopScreen()
+		self.SetRemove()
 		EngineClient.ForceDisconnect()
 		
 	def Destroy(self):

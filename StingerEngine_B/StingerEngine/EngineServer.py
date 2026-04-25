@@ -25,7 +25,7 @@ class EngineServer(ServerSystem):
         
         # ======== 玩家加入离开事件 ========
         self.ListenForEngineEvent("PlayerJoinMessageEvent",self.OnPlayerJoin)
-        self.ListenForEngineEvent("PlayerLeftMessageServerEvent",self.OnPlayerLeft)
+        self.ListenForEngineEvent("PlayerIntendLeaveServerEvent",self.OnPlayerLeft)
 
         # ========= 客户端事件监听 =========
         self.ListenForClientEvent("ForceDisconnect", self.OnClientForceDisconnect)
@@ -38,7 +38,7 @@ class EngineServer(ServerSystem):
             self._force_disconnect_player(playerid)
     
     def OnPlayerLeft(self, eventData):
-        playerid = eventData.get("id",-1)
+        playerid = eventData.get("playerId",-1)
         if playerid in self._current_players:
             del self._current_players[playerid]
     

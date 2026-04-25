@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import mod.server.extraServerApi as serverApi
-from modconfig import *
 from math import pow
 from mod_log import logger as logger
+from StingerEngine.include.modconfig import MOD_NAME, SERVER_NAME
 
 CF = serverApi.GetEngineCompFactory()
 levelId = serverApi.GetLevelId()
