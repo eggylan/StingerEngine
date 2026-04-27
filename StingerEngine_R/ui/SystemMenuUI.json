@@ -1,0 +1,893 @@
+{
+    "SystemMenuUI": {
+        "type": "screen",
+        "controls": [
+            {
+                "root_panel": {
+                    "type": "panel",
+                    "size": [
+                        "100%+0px",
+                        "100%+0px"
+                    ],
+                    "layer": 1,
+                    "controls": [
+                        {
+                            "backdrop": {
+                                "type": "image",
+                                "size": [
+                                    "100%+0px",
+                                    "100%+0px"
+                                ],
+                                "layer": 1,
+                                "alpha": 0.55,
+                                "texture": "textures/modTextures/default/black"
+                            }
+                        },
+                        {
+                            "modal_blocker@SystemMenuUI.transparent_button": {
+                                "layer": 2,
+                                "size": [
+                                    "100%+0px",
+                                    "100%+0px"
+                                ]
+                            }
+                        },
+                        {
+                            "shell_panel": {
+                                "type": "panel",
+                                "anchor_from": "center",
+                                "anchor_to": "center",
+                                "size": [
+                                    "92%+0px",
+                                    "86%+0px"
+                                ],
+                                "min_size": [
+                                    400.0,
+                                    280.0
+                                ],
+                                "max_size": [
+                                    720.0,
+                                    440.0
+                                ],
+                                "layer": 3,
+                                "propagate_alpha": true,
+                                "clips_children": true,
+                                "controls": [
+                                    {
+                                        "shell_bg": {
+                                            "type": "image",
+                                            "size": [
+                                                "100%+0px",
+                                                "100%+0px"
+                                            ],
+                                            "layer": 1,
+                                            "alpha": 0.92,
+                                            "texture": "textures/modTextures/default/grey"
+                                        }
+                                    },
+                                    {
+                                        "nav_panel": {
+                                            "type": "panel",
+                                            "anchor_from": "left_middle",
+                                            "anchor_to": "left_middle",
+                                            "size": [
+                                                "22%+0px",
+                                                "100%-16px"
+                                            ],
+                                            "min_size": [
+                                                100.0,
+                                                0.0
+                                            ],
+                                            "max_size": [
+                                                158.0,
+                                                10000.0
+                                            ],
+                                            "layer": 2,
+                                            "propagate_alpha": true,
+                                            "controls": [
+                                                {
+                                                    "nav_bg": {
+                                                        "type": "image",
+                                                        "size": [
+                                                            "100%+0px",
+                                                            "100%+0px"
+                                                        ],
+                                                        "layer": 1,
+                                                        "alpha": 0.9,
+                                                        "texture": "textures/modTextures/default/black"
+                                                    }
+                                                },
+                                                {
+                                                    "title": {
+                                                        "type": "label",
+                                                        "anchor_from": "top_middle",
+                                                        "anchor_to": "top_middle",
+                                                        "offset": [
+                                                            0.0,
+                                                            12.0
+                                                        ],
+                                                        "size": [
+                                                            "100%-16px",
+                                                            "default"
+                                                        ],
+                                                        "layer": 2,
+                                                        "font_size": "small",
+                                                        "text": "Stinger Engine Demo",
+                                                        "text_alignment": "center"
+                                                    }
+                                                },
+                                                {
+                                                    "nav_tab_stack": {
+                                                        "type": "stack_panel",
+                                                        "anchor_from": "top_middle",
+                                                        "anchor_to": "top_middle",
+                                                        "offset": [
+                                                            0.0,
+                                                            44.0
+                                                        ],
+                                                        "size": [
+                                                            "100%-16px",
+                                                            "default"
+                                                        ],
+                                                        "layer": 2,
+                                                        "controls": [
+                                                            {
+                                                                "nav_history_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "历史"
+                                                                }
+                                                            },
+                                                            {
+                                                                "nav_load_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "读取游戏"
+                                                                }
+                                                            },
+                                                            {
+                                                                "nav_save_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "保存游戏"
+                                                                }
+                                                            },
+                                                            {
+                                                                "nav_settings_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "设置"
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "divider": {
+                                                        "type": "image",
+                                                        "anchor_from": "right_middle",
+                                                        "anchor_to": "right_middle",
+                                                        "offset": [
+                                                            1.0,
+                                                            0.0
+                                                        ],
+                                                        "size": [
+                                                            2.0,
+                                                            "100%+0px"
+                                                        ],
+                                                        "layer": 3,
+                                                        "texture": "textures/modTextures/default/black"
+                                                    }
+                                                },
+                                                {
+                                                    "nav_action_stack": {
+                                                        "type": "stack_panel",
+                                                        "anchor_from": "bottom_middle",
+                                                        "anchor_to": "bottom_middle",
+                                                        "offset": [
+                                                            0.0,
+                                                            -12.0
+                                                        ],
+                                                        "size": [
+                                                            "100%-16px",
+                                                            "default"
+                                                        ],
+                                                        "layer": 2,
+                                                        "controls": [
+                                                            {
+                                                                "new_game_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "开启新游戏"
+                                                                }
+                                                            },
+                                                            {
+                                                                "title_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "返回主菜单"
+                                                                }
+                                                            },
+                                                            {
+                                                                "return_game_button@SystemMenuUI.nav_button": {
+                                                                    "$label_text": "回到游戏"
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "content_panel": {
+                                            "type": "panel",
+                                            "anchor_from": "right_middle",
+                                            "anchor_to": "right_middle",
+                                            "size": [
+                                                "78%+0px",
+                                                "100%-16px"
+                                            ],
+                                            "max_size": [
+                                                560.0,
+                                                10000.0
+                                            ],
+                                            "layer": 2,
+                                            "propagate_alpha": true,
+                                            "controls": [
+                                                {
+                                                    "content_title": {
+                                                        "type": "label",
+                                                        "anchor_from": "top_left",
+                                                        "anchor_to": "top_left",
+                                                        "offset": [
+                                                            22.0,
+                                                            16.0
+                                                        ],
+                                                        "size": [
+                                                            "80%+0px",
+                                                            "default"
+                                                        ],
+                                                        "layer": 3,
+                                                        "font_size": "normal",
+                                                        "text": "保存游戏",
+                                                        "text_alignment": "left"
+                                                    }
+                                                },
+                                                {
+                                                    "slot_grid_panel": {
+                                                        "type": "panel",
+                                                        "anchor_from": "center",
+                                                        "anchor_to": "center",
+                                                        "offset": [
+                                                            0.0,
+                                                            -10.0
+                                                        ],
+                                                        "size": [
+                                                            "94%+0px",
+                                                            "68%+0px"
+                                                        ],
+                                                        "max_size": [
+                                                            530.0,
+                                                            280.0
+                                                        ],
+                                                        "layer": 3,
+                                                        "visible": false
+                                                    }
+                                                },
+                                                {
+                                                    "history_stack_panel": {
+                                                        "type": "stack_panel",
+                                                        "anchor_from": "top_middle",
+                                                        "anchor_to": "top_middle",
+                                                        "offset": [
+                                                            0.0,
+                                                            52.0
+                                                        ],
+                                                        "size": [
+                                                            "94%+0px",
+                                                            "64%+0px"
+                                                        ],
+                                                        "max_size": [
+                                                            520.0,
+                                                            270.0
+                                                        ],
+                                                        "layer": 3,
+                                                        "visible": false
+                                                    }
+                                                },
+                                                {
+                                                    "settings_stack_panel": {
+                                                        "type": "stack_panel",
+                                                        "anchor_from": "top_middle",
+                                                        "anchor_to": "top_middle",
+                                                        "offset": [
+                                                            0.0,
+                                                            62.0
+                                                        ],
+                                                        "size": [
+                                                            "90%+0px",
+                                                            "56%+0px"
+                                                        ],
+                                                        "max_size": [
+                                                            500.0,
+                                                            240.0
+                                                        ],
+                                                        "layer": 3,
+                                                        "visible": false
+                                                    }
+                                                },
+                                                {
+                                                    "empty_label": {
+                                                        "type": "label",
+                                                        "anchor_from": "center",
+                                                        "anchor_to": "center",
+                                                        "size": [
+                                                            "80%+0px",
+                                                            "default"
+                                                        ],
+                                                        "layer": 4,
+                                                        "visible": false,
+                                                        "font_size": "normal",
+                                                        "text": "暂无内容",
+                                                        "text_alignment": "center"
+                                                    }
+                                                },
+                                                {
+                                                    "page_panel": {
+                                                        "type": "panel",
+                                                        "anchor_from": "bottom_middle",
+                                                        "anchor_to": "bottom_middle",
+                                                        "offset": [
+                                                            0.0,
+                                                            -16.0
+                                                        ],
+                                                        "size": [
+                                                            "80%+0px",
+                                                            34.0
+                                                        ],
+                                                        "max_size": [
+                                                            340.0,
+                                                            34.0
+                                                        ],
+                                                        "layer": 4,
+                                                        "visible": false,
+                                                        "controls": [
+                                                            {
+                                                                "prev_page_button@SystemMenuUI.icon_button": {
+                                                                    "$default_texture": "textures/netease/common/button/default",
+                                                                    "$hover_texture": "textures/netease/common/button/hover",
+                                                                    "$label_text": "<",
+                                                                    "$pressed_texture": "textures/netease/common/button/pressed",
+                                                                    "anchor_from": "left_middle",
+                                                                    "anchor_to": "left_middle",
+                                                                    "offset": [
+                                                                        38,
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            },
+                                                            {
+                                                                "page_label": {
+                                                                    "type": "label",
+                                                                    "anchor_from": "center",
+                                                                    "anchor_to": "center",
+                                                                    "size": [
+                                                                        "70%+0px",
+                                                                        "default"
+                                                                    ],
+                                                                    "layer": 2,
+                                                                    "font_size": "normal",
+                                                                    "text": "第1页，共3页",
+                                                                    "text_alignment": "center"
+                                                                }
+                                                            },
+                                                            {
+                                                                "next_page_button@SystemMenuUI.icon_button": {
+                                                                    "$default_texture": "textures/netease/common/button/default",
+                                                                    "$hover_texture": "textures/netease/common/button/hover",
+                                                                    "$label_text": ">",
+                                                                    "$pressed_texture": "textures/netease/common/button/pressed",
+                                                                    "anchor_from": "right_middle",
+                                                                    "anchor_to": "right_middle",
+                                                                    "offset": [
+                                                                        -38,
+                                                                        0
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "confirm_panel": {
+                                "type": "panel",
+                                "anchor_from": "center",
+                                "anchor_to": "center",
+                                "size": [
+                                    280.0,
+                                    124.0
+                                ],
+                                "layer": 20,
+                                "propagate_alpha": true,
+                                "visible": false,
+                                "controls": [
+                                    {
+                                        "confirm_bg": {
+                                            "type": "image",
+                                            "size": [
+                                                "100%+0px",
+                                                "100%+0px"
+                                            ],
+                                            "layer": 1,
+                                            "alpha": 0.95,
+                                            "texture": "textures/modTextures/default/black"
+                                        }
+                                    },
+                                    {
+                                        "confirm_message": {
+                                            "type": "label",
+                                            "anchor_from": "top_middle",
+                                            "anchor_to": "top_middle",
+                                            "offset": [
+                                                0.0,
+                                                28.0
+                                            ],
+                                            "size": [
+                                                270.0,
+                                                "default"
+                                            ],
+                                            "layer": 2,
+                                            "font_size": "normal",
+                                            "text": "确认操作？",
+                                            "text_alignment": "center"
+                                        }
+                                    },
+                                    {
+                                        "confirm_ok_button@SystemMenuUI.small_button": {
+                                            "$label_text": "确认",
+                                            "anchor_from": "bottom_middle",
+                                            "anchor_to": "bottom_middle",
+                                            "offset": [
+                                                -48,
+                                                -24
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "confirm_cancel_button@SystemMenuUI.small_button": {
+                                            "$label_text": "取消",
+                                            "anchor_from": "bottom_middle",
+                                            "anchor_to": "bottom_middle",
+                                            "offset": [
+                                                48,
+                                                -24
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "history_item_panel": {
+        "type": "panel",
+        "size": [
+            "100%+0px",
+            46.0
+        ],
+        "layer": 1,
+        "propagate_alpha": true,
+        "controls": [
+            {
+                "history_bg": {
+                    "type": "image",
+                    "size": [
+                        "100%+0px",
+                        "100%+0px"
+                    ],
+                    "layer": 1,
+                    "alpha": 0.55,
+                    "texture": "textures/modTextures/default/black"
+                }
+            },
+            {
+                "history_speaker": {
+                    "type": "label",
+                    "anchor_from": "left_middle",
+                    "anchor_to": "left_middle",
+                    "offset": [
+                        16.0,
+                        0.0
+                    ],
+                    "size": [
+                        88.0,
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "small",
+                    "text": "角色",
+                    "text_alignment": "left"
+                }
+            },
+            {
+                "history_content": {
+                    "type": "label",
+                    "anchor_from": "left_middle",
+                    "anchor_to": "left_middle",
+                    "offset": [
+                        112.0,
+                        0.0
+                    ],
+                    "size": [
+                        "100%-128px",
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "small",
+                    "text": "历史文本",
+                    "text_alignment": "left"
+                }
+            }
+        ]
+    },
+    "icon_button@common.button": {
+        "type": "button",
+        "$control_alpha": 1.0,
+        "$default_texture": "textures/netease/common/button/default",
+        "$hover_texture": "textures/netease/common/button/hover",
+        "$is_new_nine_slice": false,
+        "$label_color": [
+            1,
+            1,
+            1
+        ],
+        "$label_font_scale_factor": 1.0,
+        "$label_font_size": "normal",
+        "$label_layer": 3,
+        "$label_offset": [
+            0,
+            0
+        ],
+        "$label_text": "<",
+        "$nine_slice_buttom": 0,
+        "$nine_slice_left": 0,
+        "$nine_slice_right": 0,
+        "$nine_slice_top": 0,
+        "$nineslice_size": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "$pressed_button_name": "%netease_editor_template_namespace.click",
+        "$pressed_texture": "textures/netease/common/button/pressed",
+        "$texture_layer": 2,
+        "size": [
+            34.0,
+            24.0
+        ],
+        "layer": 3,
+        "button_mappings": [],
+        "default_control": "default",
+        "hover_control": "hover",
+        "is_handle_button_move_event": true,
+        "pressed_control": "pressed",
+        "controls": [
+            {
+                "default@netease_editor_template_namespace.default": {}
+            },
+            {
+                "hover@netease_editor_template_namespace.hover": {}
+            },
+            {
+                "pressed@netease_editor_template_namespace.pressed": {}
+            },
+            {
+                "button_label@netease_editor_template_namespace.button_label": {}
+            }
+        ]
+    },
+    "namespace": "SystemMenuUI",
+    "nav_button@common.button": {
+        "type": "button",
+        "$control_alpha": 1.0,
+        "$default_texture": "textures/netease/common/button/default",
+        "$hover_texture": "textures/netease/common/button/hover",
+        "$is_new_nine_slice": false,
+        "$label_color": [
+            1,
+            1,
+            1
+        ],
+        "$label_font_scale_factor": 1.0,
+        "$label_font_size": "normal",
+        "$label_layer": 3,
+        "$label_offset": [
+            0,
+            0
+        ],
+        "$label_text": "按钮",
+        "$nine_slice_buttom": 0,
+        "$nine_slice_left": 0,
+        "$nine_slice_right": 0,
+        "$nine_slice_top": 0,
+        "$nineslice_size": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "$pressed_button_name": "%netease_editor_template_namespace.click",
+        "$pressed_texture": "textures/netease/common/button/pressed",
+        "$texture_layer": 2,
+        "anchor_from": "center",
+        "anchor_to": "center",
+        "size": [
+            "100%+0px",
+            28.0
+        ],
+        "layer": 3,
+        "button_mappings": [],
+        "default_control": "default",
+        "hover_control": "hover",
+        "is_handle_button_move_event": true,
+        "pressed_control": "pressed",
+        "controls": [
+            {
+                "default@netease_editor_template_namespace.default": {}
+            },
+            {
+                "hover@netease_editor_template_namespace.hover": {}
+            },
+            {
+                "pressed@netease_editor_template_namespace.pressed": {}
+            },
+            {
+                "button_label@netease_editor_template_namespace.button_label": {}
+            }
+        ]
+    },
+    "settings_option_panel": {
+        "type": "panel",
+        "size": [
+            "100%+0px",
+            52.0
+        ],
+        "layer": 1,
+        "propagate_alpha": true,
+        "controls": [
+            {
+                "option_bg": {
+                    "type": "image",
+                    "size": [
+                        "100%+0px",
+                        "100%+0px"
+                    ],
+                    "layer": 1,
+                    "alpha": 0.45,
+                    "texture": "textures/modTextures/default/black"
+                }
+            },
+            {
+                "option_label": {
+                    "type": "label",
+                    "anchor_from": "left_middle",
+                    "anchor_to": "left_middle",
+                    "offset": [
+                        18.0,
+                        0.0
+                    ],
+                    "size": [
+                        "60%+0px",
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "normal",
+                    "text": "设置项",
+                    "text_alignment": "left"
+                }
+            },
+            {
+                "option_value": {
+                    "type": "label",
+                    "anchor_from": "right_middle",
+                    "anchor_to": "right_middle",
+                    "offset": [
+                        -122.0,
+                        0.0
+                    ],
+                    "size": [
+                        100.0,
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "normal",
+                    "text": "标准",
+                    "text_alignment": "right"
+                }
+            },
+            {
+                "option_button@SystemMenuUI.small_button": {
+                    "$label_text": "切换",
+                    "anchor_from": "right_middle",
+                    "anchor_to": "right_middle",
+                    "offset": [
+                        -38,
+                        0
+                    ]
+                }
+            }
+        ]
+    },
+    "slot_card_panel": {
+        "type": "panel",
+        "anchor_from": "center",
+        "anchor_to": "center",
+        "size": [
+            150.0,
+            86.0
+        ],
+        "layer": 1,
+        "propagate_alpha": true,
+        "controls": [
+            {
+                "slot_bg": {
+                    "type": "image",
+                    "size": [
+                        "100%+0px",
+                        "100%+0px"
+                    ],
+                    "layer": 1,
+                    "color": [
+                        0.08,
+                        0.36,
+                        0.46
+                    ],
+                    "texture": "textures/modTextures/default/grey"
+                }
+            },
+            {
+                "slot_index": {
+                    "type": "label",
+                    "anchor_from": "top_left",
+                    "anchor_to": "top_left",
+                    "offset": [
+                        8.0,
+                        7.0
+                    ],
+                    "size": [
+                        84.0,
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "small",
+                    "text": "存档 1",
+                    "text_alignment": "left"
+                }
+            },
+            {
+                "slot_title": {
+                    "type": "label",
+                    "anchor_from": "top_left",
+                    "anchor_to": "top_left",
+                    "offset": [
+                        8.0,
+                        23.0
+                    ],
+                    "size": [
+                        112.0,
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "normal",
+                    "text": "空槽位",
+                    "text_alignment": "left"
+                }
+            },
+            {
+                "slot_detail": {
+                    "type": "label",
+                    "anchor_from": "top_left",
+                    "anchor_to": "top_left",
+                    "offset": [
+                        8.0,
+                        42.0
+                    ],
+                    "size": [
+                        118.0,
+                        24.0
+                    ],
+                    "layer": 2,
+                    "font_size": "small",
+                    "text": "暂无进度",
+                    "text_alignment": "left"
+                }
+            },
+            {
+                "slot_action": {
+                    "type": "label",
+                    "anchor_from": "bottom_right",
+                    "anchor_to": "bottom_right",
+                    "offset": [
+                        -8.0,
+                        -7.0
+                    ],
+                    "size": [
+                        38.0,
+                        "default"
+                    ],
+                    "layer": 2,
+                    "font_size": "small",
+                    "text": "保存",
+                    "text_alignment": "right"
+                }
+            },
+            {
+                "card_button@SystemMenuUI.transparent_button": {
+                    "layer": 4,
+                    "size": [
+                        "100%+0px",
+                        "100%+0px"
+                    ]
+                }
+            }
+        ]
+    },
+    "small_button@SystemMenuUI.nav_button": {
+        "size": [
+            64,
+            22
+        ]
+    },
+    "transparent_button@common.button": {
+        "type": "button",
+        "$control_alpha": 1.0,
+        "$default_texture": "",
+        "$hover_texture": "",
+        "$is_new_nine_slice": false,
+        "$label_color": [
+            1,
+            1,
+            1
+        ],
+        "$label_font_scale_factor": 1.0,
+        "$label_font_size": "normal",
+        "$label_layer": 3,
+        "$label_offset": [
+            0,
+            0
+        ],
+        "$label_text": "",
+        "$nine_slice_buttom": 0,
+        "$nine_slice_left": 0,
+        "$nine_slice_right": 0,
+        "$nine_slice_top": 0,
+        "$nineslice_size": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "$pressed_button_name": "%netease_editor_template_namespace.click",
+        "$pressed_texture": "",
+        "$texture_layer": 2,
+        "button_mappings": [],
+        "default_control": "default",
+        "hover_control": "hover",
+        "is_handle_button_move_event": true,
+        "pressed_control": "pressed",
+        "sound_volume": 0.0,
+        "controls": [
+            {
+                "default@netease_editor_template_namespace.default": {}
+            },
+            {
+                "hover@netease_editor_template_namespace.hover": {}
+            },
+            {
+                "pressed@netease_editor_template_namespace.pressed": {}
+            },
+            {
+                "button_label@netease_editor_template_namespace.button_label": {}
+            }
+        ]
+    }
+}

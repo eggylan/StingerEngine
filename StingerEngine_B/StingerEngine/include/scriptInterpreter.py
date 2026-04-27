@@ -288,17 +288,20 @@ class CommandExecutor(object):
         label_name = cmd.get("name")
         if label_name:
             self.ui.current_label = label_name
+            self.ui.MarkAutoSavePending("label")
         return False
         
     def _handle_text(self, cmd):
         speaker = cmd.get("speaker", "")
         content = cmd.get("content", "")
         speed = cmd.get("typewriter_speed")
-        text = "{}".format(content) 
+        text = self.ui._to_text(content)
         self.ui._set_dialog_state(speaker, text, text != "", speaker != "")
+        self.ui.RecordHistory("text", speaker, text)
         self.ui.typewriter.start(text, speed)
         self.ui.pause_mode = "tap"
         self.ui._update_last_saveable_state()
+        self.ui.TryAutoSave("stable_tap")
         return True
 
     def _handle_bg(self, cmd):
@@ -501,6 +504,7 @@ class CommandExecutor(object):
         self.ui.pause_mode = "menu"
         self.ui.menu_manager.show_menu(cmd)
         self.ui._update_last_saveable_state()
+        self.ui.TryAutoSave("stable_menu")
         return True
         
     def _handle_music(self, cmd):
@@ -532,6 +536,8 @@ class CommandExecutor(object):
         
     def _handle_return(self, cmd):
         self.ui.pause_mode = "ended"
+        self.ui.MarkAutoSavePending("return_to_title")
+        self.ui.TryAutoSave("return_to_title")
         self.ui.SetRemove()
         EngineClient.CreateMainInterfaceUI()
         return True
@@ -643,7 +649,7 @@ class CommandExecutor(object):
             return value
         if isinstance(value, (int, float)):
             return value
-        if isinstance(value, str):
+        if isinstance(value, basestring):
             text = value.strip()
             lowered = text.lower()
             if lowered == "true":
@@ -1371,6 +1377,7 @@ class MenuManager(object):
         # 清除待处理菜单
         self.ui.pending_menu = None
         self.ui.pause_mode = None
+        self.ui.MarkAutoSavePending("menu_choice")
 
         # 处理选项关联的变量设置（可选字段 set_var）
         set_var = choice.get("set_var")

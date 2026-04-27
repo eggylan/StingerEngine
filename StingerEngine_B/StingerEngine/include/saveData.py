@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
+from mod_log import logger
 import json
 
 from StingerEngine.include.modconfig import (
     SAVE_KEY_PREFIX,
+    SAVE_MANUAL_SLOT_COUNT,
     SAVE_SCHEMA_VERSION,
-    SAVE_SLOT_1_ID,
-    SAVE_SLOT_2_ID,
-    SAVE_SLOT_3_ID,
     SAVE_SLOT_AUTO_ID,
     SAVE_SLOT_QUICK_ID,
 )
-
-try:
-    string_types = (basestring,)
-except NameError:
-    string_types = (str,)
 
 try:
     integer_types = (int, long)
@@ -22,7 +16,11 @@ except NameError:
     integer_types = (int,)
 
 
-SAVE_MANUAL_SLOT_IDS = (SAVE_SLOT_1_ID, SAVE_SLOT_2_ID, SAVE_SLOT_3_ID)
+def _BuildManualSlotIds():
+    return tuple(["slot_{}".format(index) for index in range(1, SAVE_MANUAL_SLOT_COUNT + 1)])
+
+
+SAVE_MANUAL_SLOT_IDS = _BuildManualSlotIds()
 SAVE_SPECIAL_SLOT_IDS = (SAVE_SLOT_AUTO_ID, SAVE_SLOT_QUICK_ID)
 SAVE_ALL_SLOT_IDS = SAVE_MANUAL_SLOT_IDS + SAVE_SPECIAL_SLOT_IDS
 
@@ -38,15 +36,20 @@ SAVE_ERROR_BAD_VISUAL = "bad_visual"
 SAVE_ERROR_BAD_CHARACTERS = "bad_characters"
 SAVE_ERROR_BAD_MENU = "bad_pending_menu"
 SAVE_ERROR_BAD_INLINE_QUEUE = "bad_inline_queue"
+SAVE_ERROR_BAD_HISTORY = "bad_history"
+SAVE_ERROR_EMPTY_SCRIPT = "script_empty"
+SAVE_ERROR_INDEX_OUT_OF_RANGE = "current_index_out_of_range"
+SAVE_ERROR_LABEL_NOT_FOUND = "label_not_found"
+SAVE_ERROR_MENU_LABEL_NOT_FOUND = "menu_label_not_found"
 
-SAVEABLE_PAUSE_MODES = ("tap", "menu")
-RESTORABLE_PAUSE_MODES = SAVEABLE_PAUSE_MODES + ("ended",)
+SAVEABLE_PAUSE_MODES = ("tap", "menu", "ended")
+RESTORABLE_PAUSE_MODES = SAVEABLE_PAUSE_MODES
 
 
 def NormalizeSaveSlotId(slot_id):
     if slot_id is None:
         return None
-    if not isinstance(slot_id, string_types):
+    if not isinstance(slot_id, basestring):
         return None
     slot_id = slot_id.strip()
     if slot_id in SAVE_ALL_SLOT_IDS:
@@ -96,6 +99,7 @@ def CloneSerializableData(value, default_value):
 
 
 def ValidateSaveSnapshot(snapshot):
+    logger.debug("Validating save snapshot: {}".format(snapshot))
     if not isinstance(snapshot, dict):
         return False, SAVE_ERROR_NOT_DICT
 
@@ -107,7 +111,7 @@ def ValidateSaveSnapshot(snapshot):
         return False, SAVE_ERROR_BAD_SLOT
 
     entry = snapshot.get("entry")
-    if not isinstance(entry, string_types) or not entry:
+    if not isinstance(entry,basestring) or not entry:
         return False, SAVE_ERROR_BAD_ENTRY
 
     current_index = snapshot.get("current_index")
@@ -138,6 +142,34 @@ def ValidateSaveSnapshot(snapshot):
     if inline_queue is not None and not isinstance(inline_queue, list):
         return False, SAVE_ERROR_BAD_INLINE_QUEUE
 
+    history = snapshot.get("history")
+    if history is not None and not isinstance(history, list):
+        return False, SAVE_ERROR_BAD_HISTORY
+
+    return True, SAVE_VALIDATE_OK
+
+
+def ValidateSnapshotAgainstScript(snapshot, script_data, label_index):
+    if not isinstance(script_data, list) or not script_data:
+        return False, SAVE_ERROR_EMPTY_SCRIPT
+
+    current_index = snapshot.get("current_index")
+    if not isinstance(current_index, integer_types) or current_index < 0 or current_index > len(script_data):
+        return False, SAVE_ERROR_INDEX_OUT_OF_RANGE
+
+    current_label = snapshot.get("current_label")
+    if current_label and current_label not in label_index:
+        return False, SAVE_ERROR_LABEL_NOT_FOUND
+
+    pending_menu = snapshot.get("pending_menu")
+    if isinstance(pending_menu, dict):
+        for choice in pending_menu.get("choices", []):
+            if not isinstance(choice, dict):
+                continue
+            target = choice.get("label")
+            if target and target not in label_index:
+                return False, SAVE_ERROR_MENU_LABEL_NOT_FOUND
+
     return True, SAVE_VALIDATE_OK
 
 
@@ -145,8 +177,8 @@ def _is_valid_dialog(dialog):
     if not isinstance(dialog, dict):
         return False
     return (
-        isinstance(dialog.get("speaker", ""), string_types)
-        and isinstance(dialog.get("content", ""), string_types)
+        isinstance(dialog.get("speaker", ""), basestring)
+        and isinstance(dialog.get("content", ""), basestring)
         and isinstance(dialog.get("dialog_visible", False), bool)
         and isinstance(dialog.get("speaker_visible", False), bool)
     )
@@ -170,7 +202,7 @@ def _is_valid_characters(characters):
         if not isinstance(item, dict):
             return False
         char_id = item.get("id")
-        if not isinstance(char_id, string_types) or not char_id:
+        if not isinstance(char_id, basestring) or not char_id:
             return False
     return True
 

@@ -185,6 +185,8 @@ class Player:
 
     def GetExtraData(self, key):
         return self.compExtraData.GetExtraData(key)
+    def GetWholeExtraData(self):
+        return self.compExtraData.GetWholeExtraData()
     def SetExtraData(self, key, value,autoSave=True):
         return self.compExtraData.SetExtraData(key, value,autoSave)
     def SaveExtraData(self):
