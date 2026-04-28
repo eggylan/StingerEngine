@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import mod.client.extraClientApi as clientApi
 import traceback
-from StingerEngine.include.clientTools import (
+from ..include.QuModLibs.Client import *
+from ..include.QuModLibs.UI import ScreenNodeWrapper
+from ..include.clientTools import (
     GetLocalConfigData,
     NotifyMsg,
     PlayUISound,
@@ -9,9 +10,7 @@ from StingerEngine.include.clientTools import (
     StopMusic,
     logger,
 )
-from StingerEngine.include.modconfig import (
-    CLIENT_NAME,
-    MOD_NAME,
+from ..include.modconfig import (
     SAVE_CLIENT_CONFIG_NAME,
     SAVE_DEFAULT_QUICK_LOAD_KEY,
     SAVE_DEFAULT_QUICK_SAVE_KEY,
@@ -21,7 +20,7 @@ from StingerEngine.include.modconfig import (
     SAVE_WRITE_RESPONSE,
     SCRIPT_EXECUTION_STEP_LIMIT,
 )
-from StingerEngine.include.saveData import (
+from ..include.saveData import (
     CloneSerializableData,
     CreateDefaultDialogState,
     CreateDefaultVisualState,
@@ -31,18 +30,17 @@ from StingerEngine.include.saveData import (
     ValidateSaveSnapshot,
     ValidateSnapshotAgainstScript,
 )
-from StingerEngine.include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
-ViewBinder = clientApi.GetViewBinderCls()
-ViewRequest = clientApi.GetViewViewRequestCls()
-ScreenNode = clientApi.GetScreenNodeCls()
+from ..include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
+from ..EngineClient import get_engine_client
 
 GAME_QUICK_SAVE_SOURCE = "game_quick"
 GAME_AUTO_SAVE_SOURCE = "game_auto"
 
-EngineClient = clientApi.GetSystem(MOD_NAME, CLIENT_NAME)
-class GameUI(ScreenNode):
+
+@ScreenNodeWrapper.autoRegister("GameUI.GameUI")
+class GameUI(ScreenNodeWrapper):
     def __init__(self, namespace, name, param):
-        ScreenNode.__init__(self, namespace, name, param)
+        ScreenNodeWrapper.__init__(self, namespace, name, param)
         self.param = param
         self.entry = param.get("entry", "main")
         self.script_data = []
@@ -96,7 +94,9 @@ class GameUI(ScreenNode):
             self.SetRemove()
         except Exception:
             pass
-        EngineClient.CreateErrorUI(errinfo)
+        ec = get_engine_client()
+        if ec:
+            ec.CreateErrorUI(errinfo)
 
     @staticmethod
     def _to_text(value):
@@ -420,6 +420,7 @@ class GameUI(ScreenNode):
         
     def Create(self):
         """UI创建成功时调用"""
+        ScreenNodeWrapper.Create(self)
         try:
             # 加载脚本
             self.script_data = self._load_script(self.entry)
@@ -441,7 +442,9 @@ class GameUI(ScreenNode):
             self.fade_overlay = self.GetBaseUIControl("/root_panel/fade_overlay").asImage()
             self._init_system_menu_controls()
             self._load_save_preferences()
-            EngineClient.RegisterGameUIRuntime(self)
+            ec = get_engine_client()
+            if ec:
+                ec.RegisterGameUIRuntime(self)
 
             # 初始化组件
             typewriter_speed = self.param.get("typewriter_speed", self.GetTypewriterSpeed())
@@ -478,8 +481,10 @@ class GameUI(ScreenNode):
         self.system_menu_button = self.GetBaseUIControl("/root_panel/system_menu_button").asButton()
         self.system_menu_button.AddTouchEventParams({"isSwallow": True})
         self.system_menu_button.SetButtonTouchUpCallback(self.OnSystemMenuButton)
-        EngineClient.RegisterSaveResponseListener(self)
-        EngineClient.RegisterKeyEventListener(self)
+        ec = get_engine_client()
+        if ec:
+            ec.RegisterSaveResponseListener(self)
+            ec.RegisterKeyEventListener(self)
 
     def _load_save_preferences(self):
         self._save_preferences = GetLocalConfigData(SAVE_CLIENT_CONFIG_NAME, {})
@@ -522,7 +527,9 @@ class GameUI(ScreenNode):
         try:
             self._is_auto_saving = True
             snapshot = self.BuildSaveSnapshot(SAVE_SLOT_AUTO_ID, False)
-            EngineClient.RequestSaveWrite(SAVE_SLOT_AUTO_ID, snapshot, "自动存档", GAME_AUTO_SAVE_SOURCE)
+            ec = get_engine_client()
+            if ec:
+                ec.RequestSaveWrite(SAVE_SLOT_AUTO_ID, snapshot, "自动存档", GAME_AUTO_SAVE_SOURCE)
             self._last_auto_save_label = marker_label
             self._last_auto_save_index = marker_index
             self._auto_save_pending_reason = None
@@ -542,10 +549,14 @@ class GameUI(ScreenNode):
         except Exception as exc:
             NotifyMsg("快速存档失败: " + self._to_text(exc))
             return
-        EngineClient.RequestSaveWrite(SAVE_SLOT_QUICK_ID, snapshot, "快速存档", GAME_QUICK_SAVE_SOURCE)
+        ec = get_engine_client()
+        if ec:
+            ec.RequestSaveWrite(SAVE_SLOT_QUICK_ID, snapshot, "快速存档", GAME_QUICK_SAVE_SOURCE)
 
     def QuickLoad(self):
-        EngineClient.RequestSaveLoad(SAVE_SLOT_QUICK_ID, GAME_QUICK_SAVE_SOURCE)
+        ec = get_engine_client()
+        if ec:
+            ec.RequestSaveLoad(SAVE_SLOT_QUICK_ID, GAME_QUICK_SAVE_SOURCE)
 
     def OnKeyPressInGame(self, eventData):
         if not self._is_key_down(eventData.get("isDown")):
@@ -569,7 +580,9 @@ class GameUI(ScreenNode):
         return False
 
     def OnSystemMenuButton(self, args):
-        EngineClient.CreateSystemMenuUI("save")
+        ec = get_engine_client()
+        if ec:
+            ec.CreateSystemMenuUI("save")
 
     def OnSaveResponse(self, event_name, data):
         source = data.get("source")
@@ -705,9 +718,11 @@ class GameUI(ScreenNode):
     def Destroy(self):
         """UI销毁时调用"""
         try:
-            EngineClient.UnregisterSaveResponseListener(self)
-            EngineClient.UnregisterKeyEventListener(self)
-            EngineClient.UnregisterGameUIRuntime(self)
+            ec = get_engine_client()
+            if ec:
+                ec.UnregisterSaveResponseListener(self)
+                ec.UnregisterKeyEventListener(self)
+                ec.UnregisterGameUIRuntime(self)
             if self.typewriter:
                 self.typewriter.stop()
             if self.menu_manager:

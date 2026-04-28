@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import mod.client.extraClientApi as clientApi
-from StingerEngine.include.clientTools import PlayUISound, StopMusic, compGame, logger
-from StingerEngine.include.modconfig import CLIENT_NAME, MOD_NAME
-
-EngineClient = clientApi.GetSystem(MOD_NAME, CLIENT_NAME)
+from .QuModLibs.Client import clientApi, compFactory
+from .clientTools import PlayUISound, StopMusic, compGame, logger
+from ..EngineClient import get_engine_client
 class TypewriterEffect(object):
     """打字机效果管理器"""
     def __init__(self, label_control, default_speed=0.03):
@@ -539,7 +537,9 @@ class CommandExecutor(object):
         self.ui.MarkAutoSavePending("return_to_title")
         self.ui.TryAutoSave("return_to_title")
         self.ui.SetRemove()
-        EngineClient.CreateMainInterfaceUI()
+        ec = get_engine_client()
+        if ec:
+            ec.CreateMainInterfaceUI()
         return True
 
     # ------------------------------------------------------------------

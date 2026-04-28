@@ -1,28 +1,25 @@
 ﻿# -*- coding: utf-8 -*-
 import traceback
-import mod.client.extraClientApi as clientApi
-
-from StingerEngine.include.clientTools import GetLocalConfigData, NotifyMsg, SetLocalConfigData, compGame, logger
-from StingerEngine.include.modconfig import (
-    CLIENT_NAME,
-    MOD_NAME,
+from ..include.QuModLibs.Client import *
+from ..include.QuModLibs.UI import ScreenNodeWrapper
+from ..include.clientTools import GetLocalConfigData, NotifyMsg, SetLocalConfigData, compGame as _compGame, logger
+from ..include.modconfig import (
     SAVE_CLIENT_CONFIG_NAME,
     SAVE_LIST_RESPONSE,
     SAVE_LOAD_RESPONSE,
     SAVE_WRITE_RESPONSE,
 )
-from StingerEngine.include.saveData import SAVE_MANUAL_SLOT_IDS
-from StingerEngine.include.saveSlotPanel import SaveSlotGridPanel
+from ..include.saveData import SAVE_MANUAL_SLOT_IDS
+from ..include.saveSlotPanel import SaveSlotGridPanel
+from ..EngineClient import get_engine_client
 
-ScreenNode = clientApi.GetScreenNodeCls()
-
-EngineClient = clientApi.GetSystem(MOD_NAME, CLIENT_NAME)
 SYSTEM_MENU_SOURCE = "system_menu"
 
 
-class SystemMenuUI(ScreenNode):
+@ScreenNodeWrapper.autoRegister("SystemMenuUI.SystemMenuUI")
+class SystemMenuUI(ScreenNodeWrapper):
     def __init__(self, namespace, name, param):
-        ScreenNode.__init__(self, namespace, name, param)
+        ScreenNodeWrapper.__init__(self, namespace, name, param)
         self.param = param or {}
         self.runtime = None
         self.context = self.param.get("context", "game")
@@ -53,8 +50,10 @@ class SystemMenuUI(ScreenNode):
         self.confirm_message = None
 
     def Create(self):
+        ScreenNodeWrapper.Create(self)
         try:
-            self.runtime = EngineClient.GetGameUIRuntime()
+            ec = get_engine_client()
+            self.runtime = ec.GetGameUIRuntime() if ec else None
             self.is_title_context = self.context == "title" or self.runtime is None
             if self.is_title_context:
                 self.active_tab = "settings"
@@ -71,7 +70,9 @@ class SystemMenuUI(ScreenNode):
                 6,
             )
             if not self.is_title_context:
-                EngineClient.RegisterSaveResponseListener(self)
+                ec2 = get_engine_client()
+                if ec2:
+                    ec2.RegisterSaveResponseListener(self)
             self.SetActiveTab(self.active_tab)
             self._play_open_animation()
         except Exception:
@@ -177,7 +178,9 @@ class SystemMenuUI(ScreenNode):
             self.slot_grid_panel.SetVisible(True)
             self.page_panel.SetVisible(True)
             self.slot_grid.set_mode("load")
-            EngineClient.RequestSaveList(SYSTEM_MENU_SOURCE)
+            ec3 = get_engine_client()
+            if ec3:
+                ec3.RequestSaveList(SYSTEM_MENU_SOURCE)
         else:
             if not self.runtime:
                 self.SetActiveTab("settings")
@@ -186,7 +189,9 @@ class SystemMenuUI(ScreenNode):
             self.slot_grid_panel.SetVisible(True)
             self.page_panel.SetVisible(True)
             self.slot_grid.set_mode("save")
-            EngineClient.RequestSaveList(SYSTEM_MENU_SOURCE)
+            ec4 = get_engine_client()
+            if ec4:
+                ec4.RequestSaveList(SYSTEM_MENU_SOURCE)
 
         self._play_alpha(self.content_panel, 0.0, 1.0, 0.12)
 
@@ -236,7 +241,9 @@ class SystemMenuUI(ScreenNode):
         if not slot_meta.get("exists"):
             NotifyMsg("该槽位暂无存档")
             return
-        EngineClient.RequestSaveLoad(slot_id, SYSTEM_MENU_SOURCE)
+        ec = get_engine_client()
+        if ec:
+            ec.RequestSaveLoad(slot_id, SYSTEM_MENU_SOURCE)
 
     def _write_slot(self, slot_id):
         try:
@@ -244,7 +251,9 @@ class SystemMenuUI(ScreenNode):
         except Exception as exc:
             NotifyMsg("无法存档: " + str(exc))
             return
-        EngineClient.RequestSaveWrite(slot_id, snapshot, None, SYSTEM_MENU_SOURCE)
+        ec = get_engine_client()
+        if ec:
+            ec.RequestSaveWrite(slot_id, snapshot, None, SYSTEM_MENU_SOURCE)
 
     def OnSaveResponse(self, event_name, data):
         if data.get("source") != SYSTEM_MENU_SOURCE:
@@ -272,7 +281,9 @@ class SystemMenuUI(ScreenNode):
             NotifyMsg(data.get("message", "存档失败"))
             return
         NotifyMsg("存档成功")
-        EngineClient.RequestSaveList(SYSTEM_MENU_SOURCE)
+        ec = get_engine_client()
+        if ec:
+            ec.RequestSaveList(SYSTEM_MENU_SOURCE)
 
     def _handle_load_response(self, data):
         if not data.get("ok", False):
@@ -452,7 +463,9 @@ class SystemMenuUI(ScreenNode):
         self.SetRemove()
         if runtime:
             runtime.SetRemove()
-        EngineClient.CreateGameUI("main")
+        ec = get_engine_client()
+        if ec:
+            ec.CreateGameUI("main")
 
     def OnReturnTitle(self, args):
         if self.is_title_context:
@@ -465,7 +478,9 @@ class SystemMenuUI(ScreenNode):
         self.SetRemove()
         if runtime:
             runtime.SetRemove()
-        EngineClient.CreateMainInterfaceUI()
+        ec = get_engine_client()
+        if ec:
+            ec.CreateMainInterfaceUI()
 
     def OnReturnGame(self, args):
         self.SetRemove()
@@ -570,7 +585,7 @@ class SystemMenuUI(ScreenNode):
                 state["timer"] = None
 
         self._set_local_position(control, start_x, start_y)
-        state["timer"] = compGame.AddRepeatedTimer(interval, _tick)
+        state["timer"] = _compGame.AddRepeatedTimer(interval, _tick)
         self._timers.append(state["timer"])
 
     def _add_delay(self, delay, callback):
@@ -585,7 +600,7 @@ class SystemMenuUI(ScreenNode):
                 self._timers.remove(timer)
             callback()
 
-        timer = compGame.AddTimer(delay, _run)
+        timer = _compGame.AddTimer(delay, _run)
         state["timer"] = timer
         self._timers.append(timer)
 
@@ -593,7 +608,7 @@ class SystemMenuUI(ScreenNode):
         if not timer:
             return
         try:
-            compGame.CancelTimer(timer)
+            _compGame.CancelTimer(timer)
         except Exception:
             pass
         if timer in self._timers:
@@ -657,7 +672,9 @@ class SystemMenuUI(ScreenNode):
 
     def Destroy(self):
         try:
-            EngineClient.UnregisterSaveResponseListener(self)
+            ec = get_engine_client()
+            if ec:
+                ec.UnregisterSaveResponseListener(self)
             if self.slot_grid:
                 self.slot_grid.destroy()
             self._clear_history_items()

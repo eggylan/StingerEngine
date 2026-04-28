@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-import mod.client.extraClientApi as clientApi
+from .QuModLibs.Client import compFactory, clientApi, levelId
 from mod_log import logger as logger
-CF = clientApi.GetEngineCompFactory()
-levelId = clientApi.GetLevelId()
+
+CF = compFactory
 
 compCustomAudio = CF.CreateCustomAudio(levelId)
 compGame = CF.CreateGame(levelId)
-compTextNotifyClient= CF.CreateTextNotifyClient(levelId)
+compTextNotifyClient = CF.CreateTextNotifyClient(levelId)
 compConfigClient = CF.CreateConfigClient(levelId)
 
 

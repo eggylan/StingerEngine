@@ -11,16 +11,24 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 角色立绘进场、切换、移动、隐藏
 - BGM / SFX 播放控制
 - 菜单分支、变量系统、条件判断、标签跳转
+- 存档 / 读档系统（18 槽位 + 自动存档 + 快速存档）
+- 对话历史记录
+- 系统菜单（存档 / 读档 / 历史 / 设置）
 - 一个完整的 demo 剧本，演示主界面进入剧情、分支选择和返回标题流程
 
-## ⚠️⚠️ Alpha 阶段警告
+## 架构说明
+
+本项目基于 **[QuModLibs](https://gitee.com/bili_zero123/qu_mod_libs)** 框架构建，跨端通信使用 `Call()` / `@AllowCall` RPC 模式，UI 使用 `ScreenNodeWrapper` + `@autoRegister` 自动注册。
+
+详见 `StingerEngine_B/StingerEngine/include/QuModLibs/`。
+
+## ⚠️ Alpha 阶段警告
 
 **本项目仍处于 Alpha 阶段，适合继续开发、验证设计和做原型，但暂不适合作为稳定发行版直接投入生产。**
 
 当前的限制包括：
 
 - API、脚本命令格式等仍可能变动
-- 无存档读档、历史记录、自动推进等功能
 - 错误处理尚未完善
 - 当前服务端逻辑为单人体验，多人进入时会被主动断开
 - demo 资源和脚本主要用于验证功能，不代表最终项目结构已经冻结
@@ -37,6 +45,7 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 载入章节脚本
 - 解释剧情命令并驱动 UI
 - 处理玩家进入、退出和单人限制
+- 存档 / 读档持久化与校验
 
 资源包负责：
 
@@ -44,62 +53,40 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 音频定义
 - 图片、立绘、背景、CG 等资源
 
-## 当前能力
-
-脚本解释器已经支持以下剧情命令类型：
-
-- label
-- text
-- bg
-- fade_in
-- fade_out
-- wait
-- show_image
-- hide_image
-- var
-- jump
-- condition
-- menu
-- music
-- sfx
-- return_to_title
-- character_enter
-- character_show
-- character_update
-- character_play_anim
-- character_hide
-- character_clear
-- character_move
-- character_scale
-
-这意味着你已经可以组织出带有分支、条件解锁和基础演出效果的完整短篇剧情。
-详见：[脚本指令集](https://github.com/eggylan/StingerEngine/wiki/脚本指令集)
-
 ## 目录说明
 
 目录如下：
 
-- StingerEngine_B/
-	行为包。包含 Python 脚本、章节、系统注册与运行逻辑。
-- StingerEngine_R/
-	资源包。包含 UI、声音定义、贴图与演示资源。
-- docs/
-	项目文档。
+- `StingerEngine_B/` — 行为包。包含 Python 脚本、章节、系统注册与运行逻辑。
+- `StingerEngine_R/` — 资源包。包含 UI、声音定义、贴图与演示资源。
+- `docs/` — 项目文档。
 
 行为包内部重点结构：
 
-- StingerEngine/modMain.py
-	AddOn 注册入口。
-- StingerEngine/EngineClient.py
-	客户端系统，负责 UI 初始化与界面切换。
-- StingerEngine/EngineServer.py
-	服务端系统，负责玩家管理和单人限制。
-- StingerEngine/include/
-	公共配置、客户端工具、服务端工具、剧情解释器。
-- StingerEngine/chapters/
-	剧情章节脚本。
-- StingerEngine/uiScript/
-	界面脚本。
+- `StingerEngine/modMain.py` — AddOn 注册入口，使用 `EasyMod()` 统一管理。
+- `StingerEngine/EngineClient.py` — 客户端系统，UI 初始化、界面切换、存档请求分发。
+- `StingerEngine/EngineServer.py` — 服务端系统，玩家管理、存档 CRUD RPC API。
+- `StingerEngine/include/QuModLibs/` — QuModLibs 框架库。
+- `StingerEngine/include/modconfig.py` — 全局常量。
+- `StingerEngine/include/clientTools.py` — 客户端工具。
+- `StingerEngine/include/serverTools.py` — 服务端工具。
+- `StingerEngine/include/saveData.py` — 存档 schema、校验、快照克隆。
+- `StingerEngine/include/saveArchiveService.py` — 服务端存档服务。
+- `StingerEngine/include/saveSlotPanel.py` — 动态槽位 UI 控件。
+- `StingerEngine/include/scriptInterpreter.py` — 剧情命令解释器、自动存档钩子。
+- `StingerEngine/chapters/` — 剧情章节脚本。
+- `StingerEngine/uiScript/` — 界面脚本（`ScreenNodeWrapper` + `@autoRegister`）。
+
+## 存档系统
+
+框架内置了完整的存档/读档系统：
+
+- **18 个手动槽位** + 自动存档槽 + 快速存档槽
+- **自动存档**：在 label/tap/menu 等稳定暂停点自动触发，去重避免连续重复
+- **快速存档/读档**：默认 F5 存档 / F9 读档
+- **读档校验**：恢复前检查当前脚本兼容性，不合法则拒读
+- **继续游戏**：主界面可查询最近存档并直接继续
+- 存档经服务端 ExtraData 持久化，服务端校验，客户端恢复
 
 ## 已有内容
 
@@ -117,6 +104,8 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 - 好感度变量
 - 条件分支触发不同对话
 - 结局跳转与返回标题
+- 存档/读档完整流程
+- 系统菜单（Esc 或点击菜单按钮）
 
 ## 快速开始
 
@@ -126,8 +115,6 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 
 工程名称：Stinger Engine
 
-命名空间：stinger
-
 最低引擎版本：1.18.0
 
 ### 2. 运行默认流程
@@ -135,31 +122,33 @@ Stinger Engine 是一个基于《我的世界》中国版 AddOn 与 ModAPI 的�
 当前默认入口为：
 
 - 加载主界面
-- 点击开始
+- 点击"开始新游戏"
 - 进入章节 main
-- main 再转发 demo 的 script_data
+- main 再转发 demo 的 `script_data`
 
-如果你没有修改入口逻辑，直接运行后就会进入演示流程。
+按 Esc 或点击系统菜单按钮可打开存档/设置面板。
 
 ### 3. 新增自己的章节
 
-在 StingerEngine_B/StingerEngine/chapters/ 下新增一个 Python 文件，例如：
+在 `StingerEngine_B/StingerEngine/chapters/` 下新增一个 Python 文件，例如：
 
 ```python
 # -*- coding: utf-8 -*-
 
 script_data = [
-		{"type": "bg", "image": "textures/modTextures/default/bg_room"},
-		{"type": "fade_in", "duration": 1.0},
-		{"type": "text", "speaker": "旁白", "content": "新的故事开始了。"},
-		{"type": "return_to_title"}
+    {"type": "bg", "image": "textures/modTextures/default/bg_room"},
+    {"type": "fade_in", "duration": 1.0},
+    {"type": "text", "speaker": "旁白", "content": "新的故事开始了。"},
+    {"type": "return_to_title"}
 ]
 ```
 
-然后在主界面或其他入口中调用对应章节名，例如：
+然后在主界面或其他入口中调用对应章节名：
 
 ```python
-EngineClient.CreateGameUI("your_chapter_name")
+ec = get_engine_client()
+if ec:
+    ec.CreateGameUI("your_chapter_name")
 ```
 
 ### 4. 修改默认章节入口
@@ -279,7 +268,7 @@ script_data = [
 
 ### 5. 可以直接扩展成多章节项目吗？
 
-可以。当前结构已经适合把每个章节拆到独立 Python 文件中，再由统一入口或章节选择界面进行跳转。
+可以。当前结构已经适合把每个章节拆到独立 Python 文件中，再由统一入口或章节选择界面进行跳转。存档系统已支持跨章节进度恢复。
 
 ### 6. 可以做多人联机剧情吗？
 
@@ -307,4 +296,6 @@ script_data = [
 
 
 
-本项目内附的demo中的剧本、美术、音频等，皆为CC0协议或AI生成，旨在验证可行性，不受 Apache License 2.0 影响。
+本项目内附的 demo 中的剧本、美术、音频等，皆为 CC0 协议或 AI 生成，旨在验证可行性，不受 Apache License 2.0 影响。
+
+QuModLibs 框架库版权归其原作者 [Zero123](https://gitee.com/bili_zero123) 所有，依据其自身许可条款使用。

@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-import mod.server.extraServerApi as serverApi
+from .QuModLibs.Server import compFactory, serverApi, levelId, Call
 from math import pow
 from mod_log import logger as logger
-from StingerEngine.include.modconfig import MOD_NAME, SERVER_NAME
 
-CF = serverApi.GetEngineCompFactory()
-levelId = serverApi.GetLevelId()
+CF = compFactory
 compCmd = CF.CreateCommand(levelId)
 compGame = CF.CreateGame(levelId)
 
@@ -111,7 +109,7 @@ class Player:
 
     def play_bgm(self, bgm, volume=1, loop=True):
         """
-        播放背景音乐
+        播放背景音乐（通过 QuModLibs Call 通信）
         :param bgm: 背景音乐ID
         :type bgm: str
         :param volume: 音量
@@ -119,22 +117,13 @@ class Player:
         :param loop: 是否循环播放
         :type loop: bool
         """
-        EngineServer = serverApi.GetSystem(MOD_NAME, SERVER_NAME)
-        params = {
-            "bgm": bgm,
-            "volume": volume,
-            "loop": loop
-        }
-        EngineServer.NotifyToClient(self.entityId, "PlayBGM", params)
-    def stop_bgm(self,name,fadeoutTime=0.0):
+        Call(self.entityId, "OnPlayBGM", bgm=bgm, volume=volume, loop=loop)
+
+    def stop_bgm(self, name, fadeoutTime=0.0):
         """
-        停止背景音乐
+        停止背景音乐（通过 QuModLibs Call 通信）
         """
-        EngineServer = serverApi.GetSystem(MOD_NAME, SERVER_NAME)
-        EngineServer.NotifyToClient(self.entityId, "StopBGM", {
-            "name": name,
-            "fadeoutTime": fadeoutTime
-        })
+        Call(self.entityId, "OnStopBGM", name=name, fadeoutTime=fadeoutTime)
 
     def play_sound(self, sound, pos, volume=1, pitch=1):
         """
