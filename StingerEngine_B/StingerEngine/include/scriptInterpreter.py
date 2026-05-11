@@ -1,7 +1,62 @@
 # -*- coding: utf-8 -*-
 from .QuModLibs.Client import clientApi, compFactory
+from .QuModLibs.Modules.UI.Anims import (
+    QLineTransform,
+    QTransform,
+)
 from .clientTools import PlayUISound, StopMusic, compGame, logger
 from ..EngineClient import get_engine_client
+
+class QFullPosRelTransform(QLineTransform):
+    """Qu 全相对位置变换 SetFullPosition("x", relativeValue)
+    CharacterManager 的百分比定位和QPosTransform（像素定位）互补
+    缓动模式setEasingMode()，默认使用 QTransform.EasingMode.EaseOutQuad
+    """
+    def __init__(self, startRel=0.0, endRel=0.0, useTime=1.0):
+        QLineTransform.__init__(self, useTime=useTime)
+        self._startRel = float(startRel)
+        self._endRel = float(endRel)
+
+    def onUpdate(self):
+        QLineTransform.onUpdate(self)
+        uiNode = self.getUiNode()
+        if not uiNode:
+            return
+        conObj = uiNode.GetBaseUIControl(self.getParentPath())
+        if not conObj:
+            return
+        conObj.SetFullPosition("x", {
+            "followType": "parent",
+            "relativeValue": self._startRel + (self._endRel - self._startRel) * self.getRatio(),
+            "absoluteValue": 0,
+        })
+
+
+class QFullSizeRelTransform(QLineTransform):
+    """Qu 全相对大小变换 SetFullSize relativeValue
+    为 CharacterManager 的百分比缩放设计
+    缓动模式setEasingMode()，默认使用 QTransform.EasingMode.EaseOutQuad
+    """
+    def __init__(self, startSize=(0.0, 0.0), endSize=(0.0, 0.0), useTime=1.0):
+        QLineTransform.__init__(self, useTime=useTime)
+        self._startSize = (float(startSize[0]), float(startSize[1]))
+        self._endSize = (float(endSize[0]), float(endSize[1]))
+
+    def onUpdate(self):
+        QLineTransform.onUpdate(self)
+        uiNode = self.getUiNode()
+        if not uiNode:
+            return
+        conObj = uiNode.GetBaseUIControl(self.getParentPath())
+        if not conObj:
+            return
+        ratio = self.getRatio()
+        rx = self._startSize[0] + (self._endSize[0] - self._startSize[0]) * ratio
+        ry = self._startSize[1] + (self._endSize[1] - self._startSize[1]) * ratio
+        conObj.SetFullSize("x", {"followType": "parent", "relativeValue": rx, "absoluteValue": 0})
+        conObj.SetFullSize("y", {"followType": "parent", "relativeValue": ry, "absoluteValue": 0})
+
+
 class TypewriterEffect(object):
     """打字机效果管理器"""
     def __init__(self, label_control, default_speed=0.03):
@@ -11,7 +66,7 @@ class TypewriterEffect(object):
         self.full_text = ""
         self.current_index = 0
         self.is_active = False
-        self.chars_per_tick = 3  # 每次显示3个字符
+        self.chars_per_tick = 5  # 每次显示5个字符
         
     def start(self, text, speed=None):
         """开始打字机效果"""
@@ -694,15 +749,18 @@ class CharacterManager(object):
     DEFAULT_SCALE_X = 0.30    # 30% 宽
     DEFAULT_SCALE_Y = 0.92    # 92% 高
 
-    def __init__(self, ui_instance, stage_panel):
+    def __init__(self, ui_instance, stage_panel, anim_manager=None):
         """
         Args:
             ui_instance: GameUI (ScreenNode) 实例，用于 CreateChildControl / RemoveChildControl
             stage_panel: 舞台面板控件（角色控件的父容器）
+            anim_manager: QAnimManager 实例（QuModLibs 动画管理器），用于驱动缓动变换。
+                          传入 None 时回退到原始 AddRepeatedTimer 模式。
         """
         self.ui = ui_instance
         self.stage_panel = stage_panel
         self.characters = {}    # {char_id: dict}
+        self._anim_manager = anim_manager
         self._anim_counter = 0
 
     #  公共方法
@@ -916,11 +974,14 @@ class CharacterManager(object):
                 self._remove_character(cid)
             return False
 
-    def move(self, char_id, target_position, duration=0.5,pause_during_move=True):
-        """移动角色到目标位置（带 smoothstep 缓动）
+    def move(self, char_id, target_position, duration=0.5, pause_during_move=True):
+        """移动角色到目标位置（带 QuModLibs 缓动）
 
         target_position 可以是预设名称（如 "left"）或一个 float 偏移量。
         duration <= 0 时立即移动。
+
+        优先使用 QAnimManager + QFullPosRelTransform 驱动；
+        若 anim_manager 不可用则回退到原始 AddRepeatedTimer 模式。
         """
         char_data = self.characters.get(char_id)
         if not char_data:
@@ -936,6 +997,26 @@ class CharacterManager(object):
             return False
 
         start_rel = self._get_position_value(char_data["position"])
+
+        # === QuModLibs 路径：使用 QAnimManager 驱动缓动 ===
+        anim_ctrl = char_data.get("_anim_control")
+        if self._anim_manager and anim_ctrl:
+            if pause_during_move:
+                self.ui.pause_mode = "wait"
+
+            def _on_move_done():
+                char_data["position"] = target_position
+                if pause_during_move and self.ui.pause_mode == "wait":
+                    self.ui.pause_mode = None
+                    self.ui.ExecuteUntilPause()
+
+            transform = QFullPosRelTransform(start_rel, end_rel, duration)
+            transform.setEasingMode(QTransform.EasingMode.EaseOutQuad)
+            transform.setFinishAnimBackCall(_on_move_done)
+            anim_ctrl.changeTransformAnim(transform)
+            return pause_during_move
+
+        # === 回退路径：原始 AddRepeatedTimer ===
         if pause_during_move:
             self.ui.pause_mode = "wait"
         interval = 0.02   # ~50 FPS
@@ -969,10 +1050,13 @@ class CharacterManager(object):
         return pause_during_move
 
     def scale(self, char_id, scale_x=1.0, scale_y=1.0, duration=0):
-        """改变角色大小（带可选过渡动画）
+        """改变角色大小（带 QuModLibs 缓动）
 
         scale_x / scale_y 为相对于默认尺寸的倍率（1.0 = 原始大小）。
         duration <= 0 时立即缩放。
+
+        优先使用 QAnimManager + QFullSizeRelTransform 驱动；
+        若 anim_manager 不可用则回退到原始 AddRepeatedTimer 模式。
         """
         char_data = self.characters.get(char_id)
         if not char_data:
@@ -994,6 +1078,25 @@ class CharacterManager(object):
         start_rx = cur_x.get("relativeValue", self.DEFAULT_SCALE_X)
         start_ry = cur_y.get("relativeValue", self.DEFAULT_SCALE_Y)
 
+        # === QuModLibs 路径：使用 QAnimManager 驱动缓动 ===
+        anim_ctrl = char_data.get("_anim_control")
+        if self._anim_manager and anim_ctrl:
+            self.ui.pause_mode = "wait"
+
+            def _on_scale_done():
+                char_data["scale_x"] = scale_x
+                char_data["scale_y"] = scale_y
+                if self.ui.pause_mode == "wait":
+                    self.ui.pause_mode = None
+                    self.ui.ExecuteUntilPause()
+
+            transform = QFullSizeRelTransform((start_rx, start_ry), (end_rx, end_ry), duration)
+            transform.setEasingMode(QTransform.EasingMode.EaseOutQuad)
+            transform.setFinishAnimBackCall(_on_scale_done)
+            anim_ctrl.changeTransformAnim(transform)
+            return True
+
+        # === 回退路径：原始 AddRepeatedTimer ===
         self.ui.pause_mode = "wait"
         interval = 0.02
         steps_total = max(1, int(duration / interval))
@@ -1033,9 +1136,18 @@ class CharacterManager(object):
         ids = list(self.characters.keys())
         for cid in ids:
             self._remove_character(cid)
+        # 注意：anim_manager 由 GameUI 以 RAII 方式管理生命周期，此处不负责销毁
 
     def has_active_transition(self):
+        """检查是否有正在进行的角色过渡动画
+
+        优先检查 QAnimsControl.hasAnim()（QuModLibs 路径）；
+        回退检查旧版 _move_timer / _scale_timer。
+        """
         for char_data in self.characters.values():
+            anim_ctrl = char_data.get("_anim_control")
+            if anim_ctrl and anim_ctrl.hasAnim():
+                return True
             if char_data.get("_move_timer") or char_data.get("_scale_timer"):
                 return True
         return False
@@ -1140,8 +1252,32 @@ class CharacterManager(object):
             "scale_x": 1.0,
             "scale_y": 1.0,
             "visible": False,
+            "_anim_control": None,  # QAnimsControl 引用，由 _register_anim_control 填充
         }
+
+        # 注册到 QAnimManager（如果可用），为该 image_base 创建 QAnimsControl
+        if self._anim_manager:
+            self._register_anim_control(char_id, image_base)
+
         return control, image_base, image_emotion
+
+    def _register_anim_control(self, char_id, image_base):
+        """为角色的 image_base 控件注册 QAnimsControl
+
+        通过 QAnimManager.getControlAnimObj() 获取或创建动画控制器，
+        后续 move/scale 通过该控制器添加变换。
+        """
+        if not self._anim_manager:
+            return
+        try:
+            path = image_base.GetPath()
+            if not path:
+                return
+            anim_ctrl = self._anim_manager.getControlAnimObj(path)
+            if char_id in self.characters:
+                self.characters[char_id]["_anim_control"] = anim_ctrl
+        except Exception:
+            logger.warn("角色动画控件注册失败: {}".format(char_id))
 
     def _apply_position(self, image_base, position):
         """将位置预设应用到角色控件 X 轴"""
@@ -1189,11 +1325,11 @@ class CharacterManager(object):
             return default_value
 
     def _remove_character(self, char_id):
-        """移除角色控件并取消关联定时器"""
+        """移除角色控件并取消关联定时器/动画"""
         char_data = self.characters.pop(char_id, None)
         if not char_data:
             return
-        # 取消可能正在运行的移动/缩放定时器
+        # 取消可能正在运行的移动/缩放定时器（回退路径）
         for key in ("_move_timer", "_scale_timer"):
             timer = char_data.get(key)
             if timer:
@@ -1201,6 +1337,12 @@ class CharacterManager(object):
                     compGame.CancelTimer(timer)
                 except Exception:
                     pass
+        # 清理 QuModLibs 动画控件引用（anim_manager 会自动清理完成的 transform）
+        anim_ctrl = char_data.get("_anim_control")
+        if anim_ctrl and self._anim_manager:
+            path = anim_ctrl.getParentPath() if hasattr(anim_ctrl, 'getParentPath') else None
+            # QAnimsControl 的 transform 在动画完成后会自动移除；
+            # 此处只需确保不再引用该控件即可
         control = char_data.get("control")
         if control:
             try:

@@ -204,6 +204,12 @@
                                             ],
                                             "layer": 4,
                                             "alpha": 0.78,
+                                            "nineslice_size": [
+                                                3,
+                                                0,
+                                                3,
+                                                0
+                                            ],
                                             "texture": "textures/modTextures/demo/ui_gold_line"
                                         }
                                     },
@@ -263,6 +269,12 @@
                                             "layer": 1,
                                             "alpha": 0.88,
                                             "fill": true,
+                                            "nineslice_size": [
+                                                8,
+                                                8,
+                                                8,
+                                                8
+                                            ],
                                             "texture": "textures/modTextures/demo/ui_menu_panel"
                                         }
                                     },
@@ -496,6 +508,12 @@
                                                         ],
                                                         "layer": 1,
                                                         "alpha": 0.96,
+                                                        "nineslice_size": [
+                                                            8,
+                                                            8,
+                                                            8,
+                                                            8
+                                                        ],
                                                         "texture": "textures/modTextures/demo/ui_load_panel"
                                                     }
                                                 },
@@ -695,6 +713,12 @@
                         "100%+0px"
                     ],
                     "layer": 1,
+                    "nineslice_size": [
+                        8,
+                        8,
+                        8,
+                        8
+                    ],
                     "texture": "textures/modTextures/demo/ui_slot_card"
                 }
             },
@@ -765,7 +789,7 @@
                         0.88,
                         0.96
                     ],
-                    "font_scale_factor": 0.7000000000000001,
+                    "font_scale_factor": 0.7,
                     "text": "暂无进度",
                     "text_alignment": "left"
                 }
@@ -831,10 +855,10 @@
         "$nine_slice_right": 0,
         "$nine_slice_top": 0,
         "$nineslice_size": [
-            0,
-            0,
-            0,
-            0
+            8,
+            8,
+            8,
+            8
         ],
         "$pressed_button_name": "%netease_editor_template_namespace.click",
         "$pressed_texture": "textures/modTextures/demo/ui_button_pressed",

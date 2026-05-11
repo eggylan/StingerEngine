@@ -31,6 +31,7 @@ from ..include.saveData import (
     ValidateSnapshotAgainstScript,
 )
 from ..include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
+from ..include.QuModLibs.Modules.UI.Anims import QAnimManager
 from ..EngineClient import get_engine_client
 
 GAME_QUICK_SAVE_SOURCE = "game_quick"
@@ -450,7 +451,10 @@ class GameUI(ScreenNodeWrapper):
             typewriter_speed = self.param.get("typewriter_speed", self.GetTypewriterSpeed())
             self.typewriter = TypewriterEffect(self.dialog_label, typewriter_speed)
             self.executor = CommandExecutor(self)
-            self.character_manager = CharacterManager(self, self.stage_panel)
+
+            # 初始化 QuModLibs 动画管理器（RAII 绑定到当前 UI 节点）
+            self._anim_manager = QAnimManager.bindRAIINode(self)
+            self.character_manager = CharacterManager(self, self.stage_panel, self._anim_manager)
             self.menu_manager = MenuManager(self)
             # 构建标签索引
             self._build_label_index()
@@ -730,6 +734,8 @@ class GameUI(ScreenNodeWrapper):
             if self.character_manager:
                 self.character_manager.destroy()
             self.pause_mode = "ended"
+            # 确保 QuModLibs RAII 资源（如 QAnimManager）正确释放
+            ScreenNodeWrapper.Destroy(self)
         except Exception:
             pass
         
