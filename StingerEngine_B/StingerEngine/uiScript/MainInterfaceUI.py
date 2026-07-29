@@ -4,6 +4,7 @@ from ..include.QuModLibs.Client import *
 from ..include.QuModLibs.UI import ScreenNodeWrapper
 from ..include.clientTools import NotifyMsg, compGame as _compGame, logger
 from ..include.modconfig import (
+    MAIN_INTERFACE_UI_DEF,
     SAVE_LIST_RESPONSE,
     SAVE_LOAD_RESPONSE,
 )
@@ -14,7 +15,7 @@ from ..EngineClient import get_engine_client
 MAIN_INTERFACE_SOURCE = "main_interface"
 
 
-@ScreenNodeWrapper.autoRegister("MainInterfaceUI.MainInterfaceUI")
+@ScreenNodeWrapper.autoRegister(MAIN_INTERFACE_UI_DEF)
 class MainInterfaceUI(ScreenNodeWrapper):
     def __init__(self, namespace, name, param):
         ScreenNodeWrapper.__init__(self, namespace, name, param)

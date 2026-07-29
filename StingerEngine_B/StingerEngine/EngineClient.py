@@ -1,25 +1,9 @@
 # -*- coding: utf-8 -*-
 from .include.QuModLibs.Client import *
-from .include.QuModLibs.Client import _loaderSystem as _clientLoader
 from .include.clientTools import compCustomAudio, compGame as _compGame_tools
 
 ClientSystem = clientApi.GetClientSystemCls()
-from .include.modconfig import (
-    ERROR_UI_CLSPATH,
-    ERROR_UI_DEF,
-    ERROR_UI_NAME,
-    GAME_UI_CLSPATH,
-    GAME_UI_DEF,
-    GAME_UI_NAME,
-    MAIN_INTERFACE_UI_CLSPATH,
-    MAIN_INTERFACE_UI_DEF,
-    MAIN_INTERFACE_UI_NAME,
-    MOD_NAME,
-    SYSTEM_MENU_UI_CLSPATH,
-    SYSTEM_MENU_UI_DEF,
-    SYSTEM_MENU_UI_NAME,
-    UI_PUSH_DELAY,
-)
+from .include.modconfig import UI_PUSH_DELAY
 
 
 # ====== 模块级单例 ======
@@ -64,7 +48,6 @@ class EngineClient(ClientSystem):
         ClientSystem.__init__(self, namespace, systemName)
         _engine_client = self
 
-        self._registered_ui = {}
         self._ui_push_timer = None
         self._save_response_listeners = []
         self._key_event_listeners = []
@@ -78,12 +61,6 @@ class EngineClient(ClientSystem):
         compCustomAudio.DisableOriginMusic(True)  # 禁止原版音乐
         self.CreateMainInterfaceUI()
 
-    def _register_ui(self, ui_name, ui_classpath, ui_def):
-        if self._registered_ui.get(ui_name):
-            return
-        clientApi.RegisterUI(MOD_NAME, ui_name, ui_classpath, ui_def)
-        self._registered_ui[ui_name] = True
-
     def _cancel_pending_push(self):
         if self._ui_push_timer:
             try:
@@ -92,23 +69,19 @@ class EngineClient(ClientSystem):
                 pass
             self._ui_push_timer = None
 
-    def _schedule_push(self, ui_name, param=None):
+    def _schedule_push(self, ui_cls, param=None):
+        """延迟推送 UI（ui_cls 为 ScreenNodeWrapper 子类，注册由 @autoRegister 完成）"""
         def _push_ui():
             self._ui_push_timer = None
-            if param is None:
-                clientApi.PushScreen(MOD_NAME, ui_name)
-            else:
-                clientApi.PushScreen(MOD_NAME, ui_name, param)
+            ui_cls.pushScreen(createParams=param)
 
         self._cancel_pending_push()
         self._ui_push_timer = _compGame_tools.AddTimer(UI_PUSH_DELAY, _push_ui)
 
     def CreateMainInterfaceUI(self):
-        self._register_ui(MAIN_INTERFACE_UI_NAME, MAIN_INTERFACE_UI_CLSPATH, MAIN_INTERFACE_UI_DEF)
-        self._schedule_push(MAIN_INTERFACE_UI_NAME)
+        self._schedule_push(_MainInterfaceUI_import.MainInterfaceUI)
 
     def CreateGameUI(self, entry=None, startMode="new", resumeSlotId=None, resumeSnapshot=None):
-        self._register_ui(GAME_UI_NAME, GAME_UI_CLSPATH, GAME_UI_DEF)
         if resumeSnapshot and not entry:
             entry = resumeSnapshot.get("entry")
         param = {"startMode": startMode}
@@ -118,18 +91,16 @@ class EngineClient(ClientSystem):
             param["resumeSlotId"] = resumeSlotId
         if resumeSnapshot:
             param["resumeSnapshot"] = resumeSnapshot
-        self._schedule_push(GAME_UI_NAME, param)
+        self._schedule_push(_GameUI_import.GameUI, param)
 
     def CreateSystemMenuUI(self, initialTab="save", context=None):
-        self._register_ui(SYSTEM_MENU_UI_NAME, SYSTEM_MENU_UI_CLSPATH, SYSTEM_MENU_UI_DEF)
         param = {"initialTab": initialTab or "save"}
         if context:
             param["context"] = context
-        self._schedule_push(SYSTEM_MENU_UI_NAME, param)
+        self._schedule_push(_SystemMenuUI_import.SystemMenuUI, param)
 
     def CreateErrorUI(self, errinfo):
-        self._register_ui(ERROR_UI_NAME, ERROR_UI_CLSPATH, ERROR_UI_DEF)
-        self._schedule_push(ERROR_UI_NAME, {"err_info": errinfo})
+        self._schedule_push(_ErrorUI_import.ErrorUI, {"err_info": errinfo})
 
     def ForceDisconnect(self):
         """触发强制断开连接"""

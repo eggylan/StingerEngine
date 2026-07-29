@@ -4,10 +4,11 @@
 # 本 Mod 基于 QuModLibs 框架构建，遵循其开发规范。
 
 from .include.QuModLibs.QuMod import *
+from .include.modconfig import MOD_NAME, SERVER_NAME, CLIENT_NAME
 
 # ====== 创建 EasyMod 实例并注册系统 ======
 myMod = EasyMod()
 
 # 注册原生 Python 客户端/服务端系统（由 QuModLibs 统一管理生命周期）
-myMod.regNativePyServer("StingerEngine", "StingerEngineServer", "EngineServer.EngineServer")
-myMod.regNativePyClient("StingerEngine", "StingerEngineClient", "EngineClient.EngineClient")
+myMod.regNativePyServer(MOD_NAME, SERVER_NAME, "EngineServer.EngineServer")
+myMod.regNativePyClient(MOD_NAME, CLIENT_NAME, "EngineClient.EngineClient")

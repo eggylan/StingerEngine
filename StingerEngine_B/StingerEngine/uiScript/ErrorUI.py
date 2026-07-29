@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from ..include.QuModLibs.Client import *
 from ..include.QuModLibs.UI import ScreenNodeWrapper
+from ..include.modconfig import ERROR_UI_DEF
 from ..EngineClient import get_engine_client
 
 
-@ScreenNodeWrapper.autoRegister("ErrorUI.ErrorUI")
+@ScreenNodeWrapper.autoRegister(ERROR_UI_DEF)
 class ErrorUI(ScreenNodeWrapper):
     def __init__(self, namespace, name, param):
         ScreenNodeWrapper.__init__(self, namespace, name, param)

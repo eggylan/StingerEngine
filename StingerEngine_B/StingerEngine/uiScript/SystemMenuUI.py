@@ -8,6 +8,7 @@ from ..include.modconfig import (
     SAVE_LIST_RESPONSE,
     SAVE_LOAD_RESPONSE,
     SAVE_WRITE_RESPONSE,
+    SYSTEM_MENU_UI_DEF,
 )
 from ..include.saveData import SAVE_MANUAL_SLOT_IDS
 from ..include.saveSlotPanel import SaveSlotGridPanel
@@ -16,7 +17,7 @@ from ..EngineClient import get_engine_client
 SYSTEM_MENU_SOURCE = "system_menu"
 
 
-@ScreenNodeWrapper.autoRegister("SystemMenuUI.SystemMenuUI")
+@ScreenNodeWrapper.autoRegister(SYSTEM_MENU_UI_DEF)
 class SystemMenuUI(ScreenNodeWrapper):
     def __init__(self, namespace, name, param):
         ScreenNodeWrapper.__init__(self, namespace, name, param)

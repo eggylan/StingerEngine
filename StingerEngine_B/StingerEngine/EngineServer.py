@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .include.QuModLibs.Server import *
-from .include.QuModLibs.Server import InjectRPCPlayerId, _loaderSystem
+from .include.QuModLibs.Server import InjectRPCPlayerId
 from .include.saveArchiveService import SaveArchiveService
 from .include.serverTools import Player
 

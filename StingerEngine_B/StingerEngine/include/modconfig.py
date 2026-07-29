@@ -2,23 +2,11 @@
 MOD_NAME = "StingerEngine"
 SERVER_NAME = "StingerEngineServer"
 CLIENT_NAME = "StingerEngineClient"
-SERVER_CLSPATH = "StingerEngine.EngineServer.EngineServer"
-CLIENT_CLSPATH = "StingerEngine.EngineClient.EngineClient"
 
-MAIN_INTERFACE_UI_NAME = "MainInterfaceUI"
-MAIN_INTERFACE_UI_CLSPATH = "StingerEngine.uiScript.MainInterfaceUI.MainInterfaceUI"
+# UI 定义（JSON文件名.命名空间），供 @ScreenNodeWrapper.autoRegister 使用
 MAIN_INTERFACE_UI_DEF = "MainInterfaceUI.MainInterfaceUI"
-
-GAME_UI_NAME = "GameUI"
-GAME_UI_CLSPATH = "StingerEngine.uiScript.GameUI.GameUI"
 GAME_UI_DEF = "GameUI.GameUI"
-
-ERROR_UI_NAME = "ErrorUI"
-ERROR_UI_CLSPATH = "StingerEngine.uiScript.ErrorUI.ErrorUI"
 ERROR_UI_DEF = "ErrorUI.ErrorUI"
-
-SYSTEM_MENU_UI_NAME = "SystemMenuUI"
-SYSTEM_MENU_UI_CLSPATH = "StingerEngine.uiScript.SystemMenuUI.SystemMenuUI"
 SYSTEM_MENU_UI_DEF = "SystemMenuUI.SystemMenuUI"
 
 UI_PUSH_DELAY = 0.05

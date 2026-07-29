@@ -11,6 +11,7 @@ from ..include.clientTools import (
     logger,
 )
 from ..include.modconfig import (
+    GAME_UI_DEF,
     SAVE_CLIENT_CONFIG_NAME,
     SAVE_DEFAULT_QUICK_LOAD_KEY,
     SAVE_DEFAULT_QUICK_SAVE_KEY,
@@ -38,7 +39,7 @@ GAME_QUICK_SAVE_SOURCE = "game_quick"
 GAME_AUTO_SAVE_SOURCE = "game_auto"
 
 
-@ScreenNodeWrapper.autoRegister("GameUI.GameUI")
+@ScreenNodeWrapper.autoRegister(GAME_UI_DEF)
 class GameUI(ScreenNodeWrapper):
     def __init__(self, namespace, name, param):
         ScreenNodeWrapper.__init__(self, namespace, name, param)
