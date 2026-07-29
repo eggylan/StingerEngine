@@ -31,7 +31,15 @@ from ..include.saveData import (
     ValidateSaveSnapshot,
     ValidateSnapshotAgainstScript,
 )
-from ..include.scriptInterpreter import TypewriterEffect, CommandExecutor, CharacterManager, MenuManager
+from ..include.scriptInterpreter import (
+    TypewriterEffect,
+    CommandExecutor,
+    CharacterManager,
+    MenuManager,
+    NormalizeTypewriterSpeed,
+    TYPEWRITER_DEFAULT_CPS,
+    TYPEWRITER_SLIDER_STEPS,
+)
 from ..include.QuModLibs.Modules.UI.Anims import QAnimManager
 from ..EngineClient import get_engine_client
 
@@ -170,13 +178,8 @@ class GameUI(ScreenNodeWrapper):
             {
                 "key": "typewriter_speed",
                 "label": "文字速度",
-                "type": "choice",
-                "choices": [
-                    {"label": "慢", "value": 0.06},
-                    {"label": "标准", "value": 0.03},
-                    {"label": "快", "value": 0.015},
-                    {"label": "瞬间", "value": 0.0},
-                ],
+                "type": "slider",
+                "steps": TYPEWRITER_SLIDER_STEPS,
             },
             {
                 "key": "auto_save_enabled",
@@ -190,10 +193,7 @@ class GameUI(ScreenNodeWrapper):
 
     def SetSettingValue(self, key, value):
         if key == "typewriter_speed":
-            try:
-                value = float(value)
-            except Exception:
-                value = 0.03
+            value = NormalizeTypewriterSpeed(value)
             self._save_preferences[key] = value
             if self.typewriter:
                 self.typewriter.default_speed = value
@@ -204,10 +204,7 @@ class GameUI(ScreenNodeWrapper):
         self._save_save_preferences()
 
     def GetTypewriterSpeed(self):
-        try:
-            return float(self._save_preferences.get("typewriter_speed", 0.03))
-        except Exception:
-            return 0.03
+        return NormalizeTypewriterSpeed(self._save_preferences.get("typewriter_speed", TYPEWRITER_DEFAULT_CPS))
 
     def IsAutoSaveEnabled(self):
         return bool(self._save_preferences.get("auto_save_enabled", True))
@@ -499,8 +496,12 @@ class GameUI(ScreenNodeWrapper):
         self._save_preferences.setdefault("save_tutorial_seen", False)
         self._save_preferences.setdefault("quick_save_key", SAVE_DEFAULT_QUICK_SAVE_KEY)
         self._save_preferences.setdefault("quick_load_key", SAVE_DEFAULT_QUICK_LOAD_KEY)
-        self._save_preferences.setdefault("typewriter_speed", 0.03)
+        self._save_preferences.setdefault("typewriter_speed", TYPEWRITER_DEFAULT_CPS)
         self._save_preferences.setdefault("auto_save_enabled", True)
+        # 迁移旧版“间隔秒数”语义为 cps
+        self._save_preferences["typewriter_speed"] = NormalizeTypewriterSpeed(
+            self._save_preferences.get("typewriter_speed")
+        )
 
     def _save_save_preferences(self):
         SetLocalConfigData(SAVE_CLIENT_CONFIG_NAME, self._save_preferences)

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 from .QuModLibs.Client import clientApi, compFactory
 from .QuModLibs.Modules.UI.Anims import (
     QLineTransform,
@@ -57,72 +58,129 @@ class QFullSizeRelTransform(QLineTransform):
         conObj.SetFullSize("y", {"followType": "parent", "relativeValue": ry, "absoluteValue": 0})
 
 
+# ====== 打字机速度模型（字/秒）======
+# typewriter_speed 统一存储为“每秒显示字符数”(cps)，0 表示瞬间显示。
+# [旧版兼容]旧版语义为“每 5 字符的定时器间隔秒数”(0.06/0.03/0.015/0)，由 NormalizeTypewriterSpeed 迁移。
+TYPEWRITER_MIN_CPS = 20.0
+TYPEWRITER_MAX_CPS = 200.0
+TYPEWRITER_DEFAULT_CPS = 160.0
+TYPEWRITER_SLIDER_STEPS = 10  # 滑条步数：0..9 -> 20..200 cps，10 -> 瞬间
+_TYPEWRITER_LEGACY_SPEED_MAP = ((0.06, 20.0), (0.03, 60.0), (0.015, 120.0))
+
+
+def NormalizeTypewriterSpeed(value, default=TYPEWRITER_DEFAULT_CPS):
+    """归一化文字速度为 cps；兼容旧版间隔值（<1 的小数），非法值回退 default"""
+    try:
+        v = float(value)
+    except Exception:
+        return default
+    if v <= 0:
+        return 0.0
+    if v < 1.0:
+        for legacy, cps in _TYPEWRITER_LEGACY_SPEED_MAP:
+            if abs(v - legacy) < 1e-6:
+                return cps
+        return default
+    if v < TYPEWRITER_MIN_CPS:
+        return TYPEWRITER_MIN_CPS
+    if v > TYPEWRITER_MAX_CPS:
+        return TYPEWRITER_MAX_CPS
+    return v
+
+
+def SliderStepToTypewriterSpeed(step):
+    """滑条整数步 (0..TYPEWRITER_SLIDER_STEPS) -> cps；最大步为瞬间(0)"""
+    try:
+        step = int(round(float(step)))
+    except Exception:
+        return TYPEWRITER_DEFAULT_CPS
+    if step >= TYPEWRITER_SLIDER_STEPS:
+        return 0.0
+    if step < 0:
+        step = 0
+    return TYPEWRITER_MIN_CPS + step * 20.0
+
+
+def TypewriterSpeedToSliderStep(speed):
+    """cps -> 滑条整数步"""
+    speed = NormalizeTypewriterSpeed(speed)
+    if speed <= 0:
+        return TYPEWRITER_SLIDER_STEPS
+    step = int(round((speed - TYPEWRITER_MIN_CPS) / 20.0))
+    if step < 0:
+        step = 0
+    if step > TYPEWRITER_SLIDER_STEPS - 1:
+        step = TYPEWRITER_SLIDER_STEPS - 1
+    return step
+
+
 class TypewriterEffect(object):
-    """打字机效果管理器"""
-    def __init__(self, label_control, default_speed=0.03):
+    """打字机效果管理器
+
+    基于真实时间按 cps 打印字符：客户端定时器按帧粒度(约1/30s)触发，
+    低于帧间隔的定时器周期会被钳制到帧，因此不能用“间隔控制速度”，
+    改为每帧根据已流逝时间计算应显示的字符数。
+    """
+    TICK_INTERVAL = 0.033  # 刷新用定时器周期，仅影响刷新频率，不影响速度
+
+    def __init__(self, label_control, default_speed=TYPEWRITER_DEFAULT_CPS):
         self.label = label_control
-        self.default_speed = default_speed
+        self.default_speed = NormalizeTypewriterSpeed(default_speed)
         self.timer = None
         self.full_text = ""
-        self.current_index = 0
         self.is_active = False
-        self.chars_per_tick = 5  # 每次显示5个字符
-        
+        self._speed_cps = 0.0
+        self._start_time = 0.0
+
     def start(self, text, speed=None):
-        """开始打字机效果"""
+        """开始打字机效果；speed 为 cps（None 使用 default_speed，0 瞬间）"""
         self.stop()
-        
+
         if not self.label or not text:
             return
-            
-        speed = self._parse_speed(speed)
-        
-        # 速度为0或文本太短时直接显示
-        if speed <= 0 or len(text) <= self.chars_per_tick:
+
+        if speed is None:
+            cps = self.default_speed
+        else:
+            cps = NormalizeTypewriterSpeed(speed, self.default_speed)
+
+        if cps <= 0:
             self.label.SetText(text)
             return
-            
+
         self.full_text = text
-        self.current_index = 0
         self.is_active = True
+        self._speed_cps = cps
+        self._start_time = time.time()
         self.label.SetText("")
-        self.timer = compGame.AddRepeatedTimer(speed, self._tick)
-        
+        self.timer = compGame.AddRepeatedTimer(self.TICK_INTERVAL, self._tick)
+
     def stop(self):
         """停止打字机效果"""
         if self.timer:
             compGame.CancelTimer(self.timer)
             self.timer = None
         self.is_active = False
-        
+
     def finish(self):
         """立即完成打字机效果"""
         if self.is_active and self.label:
             self.label.SetText(self.full_text)
         self.stop()
-        
+
     def _tick(self):
-        """定时器回调"""
+        """定时器回调：按流逝时间计算应显示的字符数"""
         if not self.is_active or not self.label:
             self.stop()
             return
-            
-        self.current_index += self.chars_per_tick
-        
-        if self.current_index >= len(self.full_text):
+
+        count = int((time.time() - self._start_time) * self._speed_cps)
+
+        if count >= len(self.full_text):
             self.label.SetText(self.full_text)
             self.stop()
-        else:
-            self.label.SetText(self.full_text[:self.current_index])
-            
-    def _parse_speed(self, speed):
-        """解析速度参数"""
-        if speed is None:
-            return self.default_speed
-        try:
-            return float(speed)
-        except Exception:
-            return self.default_speed
+        elif count > 0:
+            self.label.SetText(self.full_text[:count])
 
 
 class ExpressionValidator(object):

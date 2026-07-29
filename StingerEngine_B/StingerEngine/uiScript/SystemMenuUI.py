@@ -12,7 +12,17 @@ from ..include.modconfig import (
 )
 from ..include.saveData import SAVE_MANUAL_SLOT_IDS
 from ..include.saveSlotPanel import SaveSlotGridPanel
+from ..include.scriptInterpreter import (
+    NormalizeTypewriterSpeed,
+    SliderStepToTypewriterSpeed,
+    TypewriterSpeedToSliderStep,
+    TYPEWRITER_DEFAULT_CPS,
+    TYPEWRITER_SLIDER_STEPS,
+)
 from ..EngineClient import get_engine_client
+
+ViewBinder = clientApi.GetViewBinderCls()
+ViewRequest = clientApi.GetViewViewRequestCls()
 
 SYSTEM_MENU_SOURCE = "system_menu"
 
@@ -32,6 +42,7 @@ class SystemMenuUI(ScreenNodeWrapper):
         self.history_controls = []
         self.setting_controls = []
         self._title_settings = {}
+        self._text_speed_step = None
         self._pending_confirm_callback = None
         self._anim_counter = 0
         self._timers = []
@@ -350,6 +361,9 @@ class SystemMenuUI(ScreenNodeWrapper):
             self.empty_label.SetVisible(True)
             return
         for index, definition in enumerate(definitions):
+            if definition.get("type") == "slider":
+                self._render_slider_setting(definition, index)
+                continue
             control = self.CreateChildControl(
                 "SystemMenuUI.settings_option_panel",
                 "settings_option_{}".format(index),
@@ -371,6 +385,51 @@ class SystemMenuUI(ScreenNodeWrapper):
             self.setting_controls.append(control)
             self.AnimateListItem(control, index)
 
+    def _render_slider_setting(self, definition, index):
+        """渲染滑条型设置行（当前仅 typewriter_speed）"""
+        control = self.CreateChildControl(
+            "SystemMenuUI.settings_slider_panel",
+            "settings_option_{}".format(index),
+            self.settings_stack_panel,
+            True,
+        )
+        if not control:
+            return
+        key = definition.get("key")
+        self._set_child_label(control, "/option_label", str(definition.get("label")))
+        if key == "typewriter_speed":
+            speed = NormalizeTypewriterSpeed(self._get_setting_value(key))
+            self._text_speed_step = TypewriterSpeedToSliderStep(speed)
+        self.setting_controls.append(control)
+        self.AnimateListItem(control, index)
+
+    # ====== 文字速度滑条绑定（JSON: settings_slider_panel/speed_slider） ======
+
+    @ViewBinder.binding(ViewBinder.BF_SliderChanged | ViewBinder.BF_SliderFinished, "#stinger_text_speed_changed")
+    def OnTextSpeedSliderChanged(self, value, isFinish, _unused=None):
+        try:
+            step = int(round(float(value)))
+        except Exception:
+            return ViewRequest.Nothing
+        if self._text_speed_step is not None and step == self._text_speed_step:
+            return ViewRequest.Nothing
+        self._text_speed_step = step
+        self._set_setting_value("typewriter_speed", SliderStepToTypewriterSpeed(step))
+        logger.info("[SystemMenuUI] 文字速度滑条调整: step={}, cps={}".format(step, SliderStepToTypewriterSpeed(step)))
+        return ViewRequest.Refresh
+
+    @ViewBinder.binding(ViewBinder.BF_BindFloat, "#stinger_text_speed_value")
+    def ReturnTextSpeedSliderValue(self):
+        if self._text_speed_step is None:
+            return 0.0
+        return float(self._text_speed_step)
+
+    @ViewBinder.binding(ViewBinder.BF_BindInt, "#stinger_text_speed_steps")
+    def ReturnTextSpeedSliderSteps(self):
+        # 调试中发现固定格滑条取值范围为 0..steps-1，奇怪的是，这与网易文档描述的 0..steps 不符
+        # 返回 STEPS+1 使实际可滑到 step=TYPEWRITER_SLIDER_STEPS（瞬间档）
+        return TYPEWRITER_SLIDER_STEPS + 1
+
     def _get_setting_definitions(self):
         if self.runtime:
             return self.runtime.GetSettingDefinitions()
@@ -378,13 +437,8 @@ class SystemMenuUI(ScreenNodeWrapper):
             {
                 "key": "typewriter_speed",
                 "label": "文字速度",
-                "type": "choice",
-                "choices": [
-                    {"label": "慢", "value": 0.06},
-                    {"label": "标准", "value": 0.03},
-                    {"label": "快", "value": 0.015},
-                    {"label": "瞬间", "value": 0.0},
-                ],
+                "type": "slider",
+                "steps": TYPEWRITER_SLIDER_STEPS,
             },
             {
                 "key": "auto_save_enabled",
@@ -426,8 +480,12 @@ class SystemMenuUI(ScreenNodeWrapper):
         self._title_settings = GetLocalConfigData(SAVE_CLIENT_CONFIG_NAME, {})
         if not isinstance(self._title_settings, dict):
             self._title_settings = {}
-        self._title_settings.setdefault("typewriter_speed", 0.03)
+        self._title_settings.setdefault("typewriter_speed", TYPEWRITER_DEFAULT_CPS)
         self._title_settings.setdefault("auto_save_enabled", True)
+        # 迁移旧版“间隔秒数”语义为 cps
+        self._title_settings["typewriter_speed"] = NormalizeTypewriterSpeed(
+            self._title_settings.get("typewriter_speed")
+        )
 
     def _save_title_settings(self):
         SetLocalConfigData(SAVE_CLIENT_CONFIG_NAME, self._title_settings)
@@ -442,10 +500,7 @@ class SystemMenuUI(ScreenNodeWrapper):
             self.runtime.SetSettingValue(key, value)
             return
         if key == "typewriter_speed":
-            try:
-                value = float(value)
-            except Exception:
-                value = 0.03
+            value = NormalizeTypewriterSpeed(value)
         elif key == "auto_save_enabled":
             value = bool(value)
         self._title_settings[key] = value
